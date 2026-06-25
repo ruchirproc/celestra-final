@@ -138,35 +138,42 @@ State the override triggers: calls/day should decrease if access restrictions ar
 
 ### 4c. Calls per HCP per Year (by tier)
 
-Apply commercial stage calibration. All values must be multiples of 6 (representing bi-monthly call cycles — the standard pharma planning rhythm):
+Set T1 calls/HCP/year from market type first, then calibrate within the range by commercial stage. All values must be multiples of 6 (bi-monthly call cycles — the standard pharma planning rhythm):
 
-| Commercial stage | T1 | T2 | T3 (if present) |
-|---|---|---|---|
-| Pre-launch | 24–36 | 12–18 | 6–9 |
-| Launch year | 24–30 | 12–15 | 6–9 |
-| Post-launch growth | 18–24 | 9–12 | 4–6 |
-| Post-launch mature | 12–18 | 6–9 | 3–4 |
+| Market type | T1 Calls/yr | T2 Calls/yr | T3 Calls/yr | Commercial logic |
+|---|---|---|---|---|
+| Non-rare specialty | 24 | 12 | 6 | Higher call cadence driven by volume-based promotional model; frequency is the primary share-of-voice lever across a broad accessible HCP base |
+| Rare disease specialty | 18 | 9 | 6 | Fewer calls per HCP; smaller accessible universe, restricted academic access, and longer scientific calls mean rep capacity is consumed faster per interaction |
+| Ultra-rare / restricted | 12 | 6 | 4 | COE-only access, very small HCP pools, and highly relationship-driven call models; reps cannot and should not target high interaction volume |
 
-T2 should taper to ~40–50% of T1 frequency, reflecting the commercial rationale of prioritizing high-potential prescribers while maintaining lighter-touch coverage of the broader addressable base. T3 (if present) should be ~20–30% of T1.
+Non-rare markets carry more calls per HCP than rare disease markets because reps operate a volume-based promotional model — frequency is the primary share-of-voice lever. Rare disease reps make fewer but longer, more scientific calls, and face tighter access restrictions at academic centres.
 
-**Hard rule:** Round all calls/HCP/year values to the nearest multiple of 6. Document any rounding.
+**Taper rule:** T2 calls are ~50% of T1 (T2 HCPs are worth maintaining but not at T1 investment depth). T3 is ~25–33% of T1 (light-touch awareness maintenance). State this taper explicitly in the output — it is not a rounding artifact but a deliberate commercial investment decision.
 
-State the override triggers: frequency increases are appropriate when competitive pressure accelerates (switching products require more share-of-voice) and when new clinical data or label expansions merit re-education of established prescribers.
+**Critical insight — rare disease produces fewer total reps:** Non-rare markets have higher calls/HCP/year (24 vs 18) AND larger HCP universes — so their total call demand can still be larger. Rare disease markets have lower reach, lower calls/HCP, and smaller universes. The product (effective HCPs × calls/HCP/year) is far lower, yielding fewer required reps. Any output showing rare disease requiring more reps than a comparable non-rare market is arithmetically suspect — trace back to the effective HCP count and reach assumptions.
+
+**Post-launch maturity adjustment:** At post-launch mature stage, T1 can step down one level (non-rare mature → 18; rare disease mature → 12) if commercial evidence supports reducing frequency to defend established share rather than build new prescribing.
+
+State the override triggers: frequency increases are appropriate when competitive pressure accelerates or new clinical data merits re-education of established prescribers. Document any deviation from the market-type baseline.
 
 ### 4d. Maximum Reach Cap
 
-Set the realistic ceiling on what percentage of HCPs can actually be reached given access constraints:
+Set the T1 reach ceiling from market type, then derive T2 and T3 by applying the taper:
 
-| Market type | Typical max reach cap | Primary access limiter |
-|---|---|---|
-| Ultra-rare / academic-only | 70–80% | Institutional restrictions, limited investigator/specialist pool |
-| Rare disease specialty | 80–90% | No-see policies at major academic systems; geographic isolation |
-| Specialty branded | 85–95% | Some no-see HCPs; rural geographic gaps |
-| Primary care | 90–95% | Geographic saturation is feasible; access is primarily effort-driven |
+| Market type | T1 Max Reach | T2 Reach | T3 Reach | Primary access limiter |
+|---|---|---|---|---|
+| Ultra-rare / restricted | 80% | 60% | 40% | COE-only access; institutional gatekeeping; highly limited accessible specialist pool |
+| Rare disease specialty | 90% | 70% | 50% | No-see policies at major academic systems; geographic isolation of specialists |
+| Non-rare specialty / branded | 95% | 75% | 50% | Some no-see HCPs; rural gaps; otherwise broadly accessible |
+| Primary care | 95% | 80% | 60% | Effort-driven; geographic saturation feasible at scale |
 
-Explain the specific access constraint rationale for this market. Never recommend 100% as a planning assumption — it overstates what a field force can realistically achieve and will cause rep count underestimation.
+**Hard rules:**
+- T1 reach for non-rare markets starts at 95%. Never 100%.
+- T1 reach for rare disease markets starts at 90%. Never 100%.
+- Reach tapers by tier. T2 and T3 HCPs face similar or greater access constraints as T1 HCPs, so their reach ceiling is lower — not higher.
+- The Normal Workload scenario uses 100% reach as a theoretical stress-test ceiling only. It is never the recommended operational scenario.
 
-State the override triggers: if the client has intelligence suggesting particularly restrictive access at key academic centers, the cap should be tightened. If the HCP universe is predominantly community-based, the cap can be set closer to the upper end of the range.
+State the override triggers: if the client has intelligence on particularly restrictive access at key academic centers, tighten the cap. If the HCP universe is predominantly community-based, the cap can be set closer to the upper end of the range.
 
 ### 4e. Rep Annual Capacity
 
@@ -192,30 +199,51 @@ Total calls = Σ(Tier calls across all tiers)
 Reps required = CEILING(Total calls / Rep capacity, 1)
 ```
 
-**Scenario parameter table:**
+**Before building the scenario table, confirm the market type and look up T1 base parameters:**
 
-| # | Scenario cluster | Sub-scenario | T1 Reach | T2 Reach | T1 Calls/yr | T2 Calls/yr |
+| Market type | T1 Max Reach | T2 Reach | T3 Reach | T1 Calls | T2 Calls | T3 Calls |
 |---|---|---|---|---|---|---|
-| 1 | Normal Workload | — | 100% | 100% | base | base |
-| 2 | Reach | Aggressive | 95% | 80% | base | base |
-| 3 | Reach | Moderate | 95% | 60% | base | base |
-| 4 | Reach | Conservative | 80% | 50% | base | base |
-| 5 | Frequency | High-touch | 95% | 60% | 18 | 9 |
-| 6 | Frequency | Standard | 95% | 60% | 12 | 6 |
-| 7 | Frequency | Low-touch | 95% | 60% | 8 | 4 |
-| 8 | Segment | Premium-tilt | weighted | weighted | weighted | weighted |
-| 9 | Segment | Balanced | weighted | weighted | weighted | weighted |
-| 10 | Segment | Cost-aware | weighted | weighted | weighted | weighted |
+| Non-rare specialty | 95% | 75% | 50% | 24 | 12 | 6 |
+| Rare disease specialty | 90% | 70% | 50% | 18 | 9 | 6 |
+| Ultra-rare / restricted | 80% | 60% | 40% | 12 | 6 | 4 |
 
-For Segment scenarios, apply differentiated reach and frequency by HCP potential segment. Default splits: T1 = 30% high-potential / 70% standard-potential; T2 = 25% high-potential / 75% standard-potential:
+**Scenario parameters — Non-rare specialty market (T1 base: 95% reach / 24 calls):**
+
+| # | Scenario | Sub-scenario | T1 Reach | T2 Reach | T3 Reach | T1 Calls | T2 Calls | T3 Calls |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Normal Workload | — | 100% | 100% | 100% | 24 | 12 | 6 |
+| 2 | Reach | Aggressive | 95% | 75% | 50% | 24 | 12 | 6 |
+| 3 | Reach | Moderate | 90% | 65% | 45% | 24 | 12 | 6 |
+| 4 | Reach | Conservative | 80% | 55% | 40% | 24 | 12 | 6 |
+| 5 | Frequency | High-touch | 95% | 75% | 50% | 30 | 18 | 9 |
+| 6 | Frequency | Standard | 95% | 75% | 50% | 24 | 12 | 6 |
+| 7 | Frequency | Low-touch | 95% | 75% | 50% | 18 | 9 | 6 |
+| 8–10 | Segment | see below | weighted | weighted | weighted | weighted | weighted | weighted |
+
+**Scenario parameters — Rare disease market (T1 base: 90% reach / 18 calls):**
+
+| # | Scenario | Sub-scenario | T1 Reach | T2 Reach | T3 Reach | T1 Calls | T2 Calls | T3 Calls |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Normal Workload | — | 100% | 100% | 100% | 18 | 9 | 6 |
+| 2 | Reach | Aggressive | 90% | 70% | 50% | 18 | 9 | 6 |
+| 3 | Reach | Moderate | 85% | 65% | 45% | 18 | 9 | 6 |
+| 4 | Reach | Conservative | 75% | 55% | 40% | 18 | 9 | 6 |
+| 5 | Frequency | High-touch | 90% | 70% | 50% | 24 | 12 | 6 |
+| 6 | Frequency | Standard | 90% | 70% | 50% | 18 | 9 | 6 |
+| 7 | Frequency | Low-touch | 90% | 70% | 50% | 12 | 6 | 4 |
+| 8–10 | Segment | see below | weighted | weighted | weighted | weighted | weighted | weighted |
+
+Use the non-rare table for specialty branded and hybrid markets. Use the rare disease table for rare and ultra-rare markets (with ultra-rare T1 reach capped at 80%).
+
+For Segment scenarios, apply differentiated reach and frequency by HCP potential segment within each tier. Default splits: T1 = 30% high-potential / 70% standard-potential; T2 = 25% high-potential / 75% standard-potential. Use the market-type T1/T2 values as the anchor, then scale:
 
 | Segment sub-scenario | T1 High R/F | T1 Standard R/F | T2 High R/F | T2 Standard R/F |
 |---|---|---|---|---|
-| Premium-tilt | 95% / 18 | 85% / 10 | 80% / 9 | 50% / 4 |
-| Balanced | 95% / 14 | 80% / 8 | 70% / 7 | 45% / 3 |
-| Cost-aware | 90% / 12 | 70% / 6 | 60% / 5 | 35% / 2 |
+| Premium-tilt | T1-max / T1-calls | T1-max×0.90 / T1-calls×0.60 | T2 / T2-calls | T2×0.70 / T2-calls×0.50 |
+| Balanced | T1-max / T1-calls×0.85 | T1-max×0.85 / T1-calls×0.55 | T2 / T2-calls×0.80 | T2×0.65 / T2-calls×0.40 |
+| Cost-aware | T1-max×0.95 / T1-calls×0.70 | T1-max×0.75 / T1-calls×0.40 | T2×0.85 / T2-calls×0.60 | T2×0.55 / T2-calls×0.25 |
 
-If more than 2 tiers are present, extend the scenario logic with appropriate tapers for T3+.
+If more than 2 tiers are present, extend the taper for T3 using the T3 reach and calls from the market-type table above.
 
 **Present results as a consolidated scenario table:**
 
