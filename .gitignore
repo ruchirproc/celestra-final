@@ -1,0 +1,39 @@
+# ── Secrets — NEVER commit ───────────────────────────────────────────────────
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ── Python artifacts ─────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+backend/venv/
+backend/.venv/
+*.egg-info/
+
+# ── Frontend — celestra-v3 ───────────────────────────────────────────────────
+# (celestra-v3 also has its own .gitignore once its nested .git is removed)
+celestra-v3/node_modules/
+celestra-v3/dist/
+celestra-v3/dist-ssr/
+celestra-v3/.output/
+celestra-v3/.vinxi/
+celestra-v3/.nitro/
+celestra-v3/.tanstack/
+celestra-v3/.env.local
+celestra-v3/.env.*.local
+celestra-v3/*.local
+
+# ── OS / editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.suo
+*.sln
+*.sw?
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ── Claude Code internal (agents + skills should be committed; these should not) ─
+.claude/worktrees/
+.claude/todos/
