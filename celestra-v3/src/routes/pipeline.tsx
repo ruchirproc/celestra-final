@@ -199,17 +199,26 @@ function PipelinePage() {
     const uploadedFiles = files;
     setFiles([]);
 
-    try {
-      const result = await streamMessage(
-        sessionId,
-        text,
-        uploadedFiles,
-        (delta) => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m))
-          );
-        },
+    const onDelta = (delta: string) =>
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m))
       );
+
+    let activeSessionId = sessionId;
+
+    try {
+      let result;
+      try {
+        result = await streamMessage(activeSessionId, text, uploadedFiles, onDelta);
+      } catch (err) {
+        if ((err as Error).message !== "Invalid or expired session") throw err;
+        const pid = localStorage.getItem("celestra_project_id");
+        const ctxJson = localStorage.getItem("celestra_context_json");
+        const { session_id } = await startSession(step as "context" | "targeting", pid, ctxJson);
+        setSessionId(session_id);
+        activeSessionId = session_id;
+        result = await streamMessage(activeSessionId, text, uploadedFiles, onDelta);
+      }
 
       setMessages((prev) =>
         prev.map((m) =>

@@ -146,12 +146,26 @@ function SizingPage() {
     const uploadedFile = file;
     setFile(null);
 
+    const onDelta = (delta: string) =>
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m))
+      );
+
+    let activeSessionId = sessionId;
+
     try {
-      const result = await streamMessage(sessionId, text, uploadedFile, (delta) => {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m))
-        );
-      });
+      let result;
+      try {
+        result = await streamMessage(activeSessionId, text, uploadedFile, onDelta);
+      } catch (err) {
+        if ((err as Error).message !== "Invalid or expired session") throw err;
+        const pid = localStorage.getItem("celestra_project_id");
+        const ctxJson = localStorage.getItem("celestra_context_json");
+        const { session_id } = await startSession("sizing", pid, ctxJson);
+        setSessionId(session_id);
+        activeSessionId = session_id;
+        result = await streamMessage(activeSessionId, text, uploadedFile, onDelta);
+      }
 
       setMessages((prev) =>
         prev.map((m) =>

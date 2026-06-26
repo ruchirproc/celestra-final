@@ -90,7 +90,11 @@ export async function streamMessage(
     body,
   });
 
-  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(errBody.error ?? `HTTP ${res.status}`);
+  }
+  if (!res.body) throw new Error("No response body");
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
