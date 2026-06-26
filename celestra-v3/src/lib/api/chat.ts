@@ -119,5 +119,6 @@ export async function streamMessage(
   }
 
   console.warn("[streamMessage] stream ended without done event");
+  onDelta("\n\n*(Response was cut off — the connection timed out. Ask the assistant to continue if the answer looks incomplete.)*");
   return { is_complete: false, project_id: null, output_files: [] };
 }

@@ -3,6 +3,7 @@ import os
 import uuid
 import json
 import re
+import time
 from pathlib import Path
 
 from flask import Flask, request, jsonify, Response, stream_with_context
@@ -405,6 +406,7 @@ def send_message():
             output_files: list = []
             try:
                 final_response = None
+                last_ping = time.time()
                 with client.responses.stream(
                     model=ASSISTANT_MODEL,
                     tools=[{"type": "code_interpreter", "container": container}],
@@ -412,10 +414,15 @@ def send_message():
                     input=sess["history"],
                 ) as stream:
                     for event in stream:
+                        now = time.time()
+                        if now - last_ping > 15:
+                            yield ": keepalive\n\n"
+                            last_ping = now
                         if event.type == "response.output_text.delta":
                             delta = getattr(event, "delta", "")
                             if delta:
                                 full_text += delta
+                                last_ping = time.time()
                                 yield f"data: {json.dumps({'delta': delta})}\n\n"
                         elif event.type == "response.completed":
                             final_response = event.response
@@ -488,6 +495,7 @@ def send_message():
     def generate():
         full_text = ""
         try:
+            last_ping = time.time()
             stream = client.chat.completions.create(
                 model=MODEL,
                 max_completion_tokens=8192,
@@ -495,11 +503,16 @@ def send_message():
                 stream=True,
             )
             for chunk in stream:
+                now = time.time()
+                if now - last_ping > 15:
+                    yield ": keepalive\n\n"
+                    last_ping = now
                 if not chunk.choices:
                     continue
                 delta = chunk.choices[0].delta.content or ""
                 if delta:
                     full_text += delta
+                    last_ping = time.time()
                     yield f"data: {json.dumps({'delta': delta})}\n\n"
 
             sess["messages"].append({"role": "assistant", "content": full_text})
