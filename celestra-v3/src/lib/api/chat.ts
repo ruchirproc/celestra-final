@@ -1,5 +1,5 @@
 export const API_BASE =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000";
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "https://celestra-full-stack-production.up.railway.app";
 
 export interface SessionStartResult {
   session_id: string;
