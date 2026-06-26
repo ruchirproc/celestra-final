@@ -15,7 +15,14 @@ import httpx
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=re.compile(r"http://localhost(:\d+)?$"), supports_credentials=False)
+
+_ALLOWED_ORIGINS = [
+    re.compile(r"http://localhost(:\d+)?$"),
+]
+if _frontend_url := os.environ.get("FRONTEND_URL"):
+    _ALLOWED_ORIGINS.append(_frontend_url.rstrip("/"))
+
+CORS(app, origins=_ALLOWED_ORIGINS, supports_credentials=False)
 
 # Auto-detect endpoint type:
 #   *.openai.azure.com  → Azure OpenAI Service  → AzureOpenAI client (needs api_version)
