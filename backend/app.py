@@ -18,6 +18,7 @@ app = Flask(__name__)
 
 _ALLOWED_ORIGINS = [
     re.compile(r"http://localhost(:\d+)?$"),
+    "https://celestra-final.vercel.app"
 ]
 if _frontend_url := os.environ.get("FRONTEND_URL"):
     _ALLOWED_ORIGINS.append(_frontend_url.rstrip("/"))
