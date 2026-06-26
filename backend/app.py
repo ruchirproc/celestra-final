@@ -347,7 +347,11 @@ def start_session():
         "project_id": project_id,
     }
     sessions[session_id]["messages"].append({"role": "user", "content": opening})
-    first_message = _call_gpt_sync(session_id)
+    try:
+        first_message = _call_gpt_sync(session_id)
+    except Exception as exc:
+        sessions.pop(session_id, None)
+        return jsonify({"error": f"Failed to start session: {exc}"}), 500
     return jsonify({"session_id": session_id, "first_message": first_message})
 
 
@@ -471,7 +475,10 @@ def send_message():
     content = user_text or ""
     if "file" in request.files:
         f = request.files["file"]
-        excel_text = parse_excel_to_text(f.read())
+        try:
+            excel_text = parse_excel_to_text(f.read())
+        except Exception as exc:
+            return jsonify({"error": f"Could not parse uploaded file: {exc}"}), 400
         content = (content + "\n\n" if content else "") + (
             f"UPLOADED FILE: {f.filename}\n\n{excel_text}"
         )
@@ -677,6 +684,16 @@ def get_project(project_id: str):
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "model": MODEL})
+
+
+@app.errorhandler(Exception)
+def handle_unhandled_exception(exc):
+    # Registering a custom handler causes Flask to run after_request hooks
+    # (including Flask-CORS) on the error response, so CORS headers are present.
+    app.logger.exception("Unhandled exception")
+    response = jsonify({"error": str(exc)})
+    response.status_code = 500
+    return response
 
 
 if __name__ == "__main__":
