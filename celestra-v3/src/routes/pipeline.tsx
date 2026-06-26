@@ -108,7 +108,7 @@ function PipelinePage() {
       setMessages([{
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `Failed to connect to backend: ${(err as Error).message}\n\nMake sure the Flask server is running at http://localhost:5000 please do this`,
+        content: `Failed to connect to backend: ${(err as Error).message}\n\nMake sure the backend server is reachable and try refreshing.`,
       }]);
     } finally {
       setIsLoading(false);
@@ -413,53 +413,60 @@ function PipelinePage() {
       <div className="shrink-0 border-t border-border bg-white px-4 py-3 sm:px-6">
         <div className="mx-auto max-w-3xl space-y-2">
 
-          {/* File upload — visible only in targeting step */}
-          {step === "targeting" && (
-            <div className="space-y-1.5">
-              {/* Pending files list */}
-              {files.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {files.map((f, i) => (
-                    <div
-                      key={`${f.name}-${i}`}
-                      className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5"
+          {/* File upload — always visible */}
+          <div className="space-y-1.5">
+            {/* Pending files list */}
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {files.map((f, i) => (
+                  <div
+                    key={`${f.name}-${i}`}
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 shrink-0 text-green-600" />
+                    <span className="max-w-[160px] truncate text-xs font-medium">{f.name}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {(f.size / 1024).toFixed(0)} KB
+                    </span>
+                    <button
+                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
                     >
-                      <FileSpreadsheet className="h-3.5 w-3.5 shrink-0 text-green-600" />
-                      <span className="max-w-[160px] truncate text-xs font-medium">{f.name}</span>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
-                        {(f.size / 1024).toFixed(0)} KB
-                      </span>
-                      <button
-                        onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {/* Add files button — always visible so user can keep adding */}
-              <button
-                onClick={() => { if (fileInputRef.current) { fileInputRef.current.value = ""; fileInputRef.current.click(); } }}
-                className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/30 hover:text-foreground"
-              >
-                <Upload className="h-3.5 w-3.5" />
-                {files.length > 0 ? "Add another file (.xlsx)" : "Attach HCP universe (.xlsx)"}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const picked = Array.from(e.target.files ?? []);
-                  if (picked.length) setFiles((prev) => [...prev, ...picked]);
-                }}
-              />
-            </div>
-          )}
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Add files button */}
+            <button
+              onClick={() => { if (fileInputRef.current) { fileInputRef.current.value = ""; fileInputRef.current.click(); } }}
+              className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/30 hover:text-foreground"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              {files.length > 0 ? "Add another file (.xlsx)" : "Attach HCP universe (.xlsx)"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const picked = Array.from(e.target.files ?? []);
+                if (!picked.length) return;
+                setFiles((prev) => [...prev, ...picked]);
+                // If user attaches a file while still in context step, skip straight to targeting
+                if (step === "context") {
+                  setStep("targeting");
+                  setCompletedSteps((s) => new Set(s).add("context"));
+                  const pid = projectId ?? localStorage.getItem("celestra_project_id");
+                  const ctxJson = localStorage.getItem("celestra_context_json");
+                  initSession("targeting", pid, ctxJson);
+                }
+              }}
+            />
+          </div>
 
           {/* Text input + send */}
           <div className="flex items-end gap-2">
@@ -493,7 +500,7 @@ function PipelinePage() {
 
           <p className="text-[10px] text-muted-foreground">
             {step === "context"
-              ? "Answering all context questions unlocks the targeting workflow."
+              ? "Answer context questions, or attach an HCP file above to skip straight to targeting."
               : "You can attach multiple Excel files before sending. Use 'Add another file' to queue more."}
           </p>
         </div>
