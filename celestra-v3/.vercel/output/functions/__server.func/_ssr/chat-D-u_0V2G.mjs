@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://https://celestra-full-stack-production.up.railway.app";
 async function startSession(agent, project_id, context_json) {
   const res = await fetch(`${API_BASE}/api/session/start`, {
     method: "POST",

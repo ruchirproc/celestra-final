@@ -73,7 +73,7 @@ function AlignmentPage() {
       setMessages([{
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `Failed to connect to backend: ${(err as Error).message}\n\nMake sure the Flask server is running at http://localhost:5000`,
+        content: `Failed to connect to backend: ${(err as Error).message}\n\nMake sure the Flask server is running at http://https://celestra-full-stack-production.up.railway.app`,
       }]);
     } finally {
       setIsLoading(false);

@@ -170,7 +170,7 @@ function PipelinePage() {
         role: "assistant",
         content: `Failed to connect to backend: ${err.message}
 
-Make sure the Flask server is running at http://localhost:5000`
+Make sure the Flask server is running at http://https://celestra-full-stack-production.up.railway.app`
       }]);
     } finally {
       setIsLoading(false);
