@@ -439,11 +439,16 @@ function ContextPage() {
         description="Let's start building on the context - fill in a few details and Agent will pre-seed recommendations for targeting, sizing, and alignment."
       />
 
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_300px] lg:p-8">
+      <div
+        className={cn(
+          "mx-auto grid max-w-6xl grid-cols-1 gap-6 p-4 sm:p-6 lg:p-8",
+          !showAnalysis && "lg:grid-cols-[1fr_300px]",
+        )}
+      >
       <div className="min-w-0 space-y-5">
 
-        {/* Single persistent chat bubble — sits above the form, text changes as we progress */}
-        <ChatBubble state={chatBubble} />
+        {/* Single persistent chat bubble — hidden once analysis takes over */}
+        {!showAnalysis && <ChatBubble state={chatBubble} />}
 
         {!showAnalysis && (
           <>
@@ -796,9 +801,11 @@ function ContextPage() {
 
       </div>
 
-      <aside className="min-w-0">
-        <AgentMemoryPanel summaryIndex={completedSections} isThinking={isTransitioning || isAnalyzing} />
-      </aside>
+      {!showAnalysis && (
+        <aside className="min-w-0">
+          <AgentMemoryPanel summaryIndex={completedSections} isThinking={isTransitioning || isAnalyzing} />
+        </aside>
+      )}
       </div>
     </>
   );
