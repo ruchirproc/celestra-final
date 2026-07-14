@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"warmup: %{http_code}\\\\n\" http://localhost:8080/context)",
+      "Bash(node \"C:/Users/RUCHIR~1/AppData/Local/Temp/claude/c--Users-RuchirTyagi-OneDrive---ProcDNA-Analytics-Pvt--Ltd-Documents-Internal-Claude-POC-Celestra-Full-Stack-v2/33505d1b-69d0-4179-a0c9-1a23c1d58602/scratchpad/pw-continuous-chat.js\")",
+      "Bash(curl -s -o /dev/null -w \"warmup: %{http_code}\\\\n\" http://localhost:8081/context)"
+    ]
+  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "github@claude-plugins-official": true,

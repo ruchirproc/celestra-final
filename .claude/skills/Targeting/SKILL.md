@@ -1,160 +1,326 @@
 ---
-name: targeting-rare-skill
-description: hcp targeting, scoring, normalization, deciling, and tiering for rare disease, branded, and combined pharma markets. use when scoring hcps using commercial metrics (rx, claims, patient counts) and/or influence metrics (clinical trials, publications, kol status, online presence), applying continuous-band outlier-aware normalization, computing weighted composite priority scores, assigning cumulative-score-based deciles and tiers, and delivering findings as a structured consultancy briefing in chat — no excel output.
+name: targeting-combined-skill
+description: Build formula-driven HCP targeting, scoring, normalization, deciling, tiering, and finsal target-list Excel workbooks for branded, rare disease, or combined pharma markets. Use when the user asks for HCP-level metric mapping, normalization, weighting, composite scoring, cumulative-score deciling, tiering, target-list creation, CRM/call-plan deployment, Excel scoring workbooks, DQ comparison, consultant-style pharma targeting methodology, rare disease patient opportunity scoring, influence scoring using clinical trials/publications/online presence/KOL, continuous-band min-max normalization, or any combined branded and rare-disease targeting flow.
 ---
-
-# Rare Disease and Branded HCP Targeting
-
-Use this skill to convert HCP-level commercial, activity, influence, and strategic metrics into a transparent priority score, decile, tier, and deployable HCP target list — for rare disease, branded, or combined market targeting. Deliver all findings as a structured consultancy briefing. No Excel files are generated.
-
-The output must be explainable, auditable, and suitable for CRM deployment, call planning, field prioritization, and leadership review.
-
+ 
+# HCP Targeting and Formula-Driven Scoring — Branded, Rare Disease, and Combined Markets
+ 
+Use this skill to build a defendable, auditable, and fully formula-driven HCP targeting methodology. The skill supports all pharma commercial targeting use cases including branded growth, generic defense, launch targeting, switch opportunity, competitive conversion, whitespace identification, retention, account prioritization, access prioritization, rare disease patient opportunity, KOL/influence prioritization, and field-force deployment.
+ 
+The skill must remain generic. Do not hardcode scoring metrics, fixed weights, fixed Excel column letters, fixed row numbers, fixed brand assumptions, or fixed market definitions unless the user explicitly provides them.
+ 
+The primary output must be a strictly formula-driven Excel workbook unless the user explicitly asks only for methodology text.
+ 
 ---
-
-## Required inputs
-
-Before scoring can begin, collect or confirm:
-
-1. **Market type:** `rare disease` / `branded` / `combined`
-2. **HCP-level data** with at least one unique identifier and available metrics:
+ 
+## Market Type
+ 
+Before scoring, confirm the market type. This determines which scoring components, normalization rules, and deciling logic apply.
+ 
+| Market Type | Description |
+|---|---|
+| `branded` | Commercial claims, sales, prescriptions, access, market share, engagement |
+| `rare disease` | Patient opportunity, influence, KOL, clinical trials, publications, recency |
+| `combined` | Both branded commercial value and rare disease strategic relevance |
+ 
+If the market type is missing, ask the user before proceeding. If the user wants speed, default to `branded` and document the assumption.
+ 
+---
+ 
+## Core Principles
+ 
+- Preserve the user's raw data exactly as provided.
+- Build scoring logic from the user's selected metrics, available dataset fields, or explicitly approved assumptions.
+- Treat every scoring metric as configurable.
+- Do not force any metric into the framework as mandatory unless the user explicitly provides that requirement.
+- Do not convert absolute metrics into share metrics unless the user explicitly asks for share-based scoring.
+- Keep metric mapping, directionality, weights, thresholds, decile settings, tier settings, and exclusions in editable helper tables.
+- Use visible Excel formulas for all derived fields.
+- Make every score, rank, cumulative score, decile, tier, and target-list field traceable from raw input to final output.
+- Use cumulative-score stepwise deciling by default and as the only allowed deciling method unless the user explicitly selects cumulative-percentage deciling.
+- Assign the highest decile (Decile 10 / D10) to the highest-priority HCPs and the lowest decile (Decile 1 / D1) to the lowest-priority HCPs.
+- Do not use equal-count deciling unless the user explicitly requests it.
+- Do not use percentile/rank deciling unless the user explicitly requests it.
+- Do not use fixed Excel references such as specific column letters or fixed row numbers in reusable formulas.
+- Use structured references, named ranges, helper tables, or dynamically generated references in Excel.
+---
+ 
+## Required Inputs to Collect
+ 
+Before scoring or building the final output, ask the user for any missing inputs that materially affect the analysis.
+ 
+1. **Market type**: `branded`, `rare disease`, or `combined`
+2. **HCP-level data** with at least one unique identifier and available metrics such as:
    - HCP ID, HCP name, NPI or other identifier
-   - Specialty, institution name, institution setting, geography or territory
-   - Diagnosed patient count, total claims count, treatment patient count, latest claim date
-   - Clinical trials count or score, publications count or score, online presence score, KOL flag or score
-3. **Weighting method:** user-defined weights, or a metric priority order for rank-decay weights
-4. **Tier cutoffs:** decile-based or score-based thresholds
-5. **max_allowed_gap:** default 10 (used in continuous-band normalization; document and expose in output)
-
+   - Specialty, institution name, institution setting
+   - Geography or territory
+   - Diagnosed patient count, treatment patient count, total claims count
+   - Latest claim date, recency proxy
+   - Clinical trials count or score, publications count or score
+   - Online presence score, KOL flag or KOL score
+   - Sales, claims, prescriptions, market share, or engagement proxy
+3. **Weighting method**:
+   - User-defined metric weights, or
+   - Priority order to be converted into rank-decay weights, or
+   - Confirm equal-weight assumption if no weights are provided
+4. **Decile and tiering requirements**:
+   - Decile cutoffs and tiering thresholds
+   - Field capacity or business rules
+   - Inclusion and exclusion overrides
+5. **Outlier handling parameter** (for rare disease or combined markets):
+   - `max_allowed_gap` for continuous-band min-max normalization
+   - If not provided, create a visible configurable helper cell with a reasonable default
+If weights are not provided and the user wants speed, assign equal weights across all included metrics and document the assumption.
+ 
 ---
-
-## Market-specific scoring logic
-
-### Rare disease
-
-For rare disease targeting, the core problem is that volume-based scoring alone mis-ranks the most strategically important HCPs. A KOL at a major academic center who has diagnosed 5 rare disease patients is more commercially valuable than a community physician who has coincidentally seen 20 patients. The scoring model must capture this.
-
-**Score patient opportunity:**
-- Diagnosed patient count — primary indicator of current diagnosis activity
-- Treatment patient count — subset actively managing patients on therapy
-- Total claims count — volume proxy across the care continuum
-- Recency of activity — recent claims signal active engagement; stale claims signal dormancy
-
-**Score strategic fit:**
-- Specialty — target specialists (1000) vs. adjacent specialists (500) vs. non-relevant (0)
-- Institution setting — academic community (1000) vs. non-academic (500) vs. unknown (0)
-- KOL flag or score — binary or scaled influence indicator
-
-**Score influence:**
-- Clinical trials — participation as PI or sub-investigator signals disease expertise and network influence
-- Publications — peer-reviewed output signals scientific authority
-- Online presence — conferences, webinars, educational platforms; indicator of thought leadership reach
-
-**Combine into composite score.** Use deciles and tiers together: deciles provide distribution ranking; tiers provide commercial actionability.
-
-### Branded
-
-For branded market targeting, prioritize market activity and commercial opportunity.
-
-1. Apply business strategy filters (territory, specialty, geography)
-2. Score market value: Rx volume, NRx trends, patient market share
-3. Normalize and weight commercial metrics
-4. Compute final priority score and sort descending
-5. Assign cumulative score-based deciles
-6. Apply field capacity or business tier rules
-
-### Combined
-
-For combined targeting, preserve both commercial opportunity and rare disease strategic relevance.
-
-1. Score branded opportunity as a component
-2. Score rare disease opportunity and influence as a component
-3. Create a blended final priority score
-4. Preserve component scores so the user can explain why each HCP is prioritized
-5. Assign deciles and tiers from the combined score unless separate component deciles are requested
-
+ 
+## Mandatory Workbook Output
+ 
+When creating an Excel workbook, include these worksheets in this order.
+ 
+### 1. `summary`
+ 
+Include:
+ 
+- Objective
+- Market type (`branded`, `rare disease`, or `combined`)
+- Input files or input fields used
+- Entity level (HCP, NPI, account, territory, or other user-defined unit)
+- Selected scoring metrics
+- Scoring approach and market-specific component structure
+- Weighting approach
+- Normalization method (standard min-max for branded; continuous-band min-max for rare disease or combined)
+- Deciling approach
+- Tiering approach
+- Data-quality summary
+- Key assumptions
+- Analyst notes
+- Deployment interpretation
+The `summary` sheet must clearly state:
+ 
+> Deciles were assigned using cumulative-score stepwise deciling. Each decile represents approximately 10% of total final priority score. The highest-priority entities receive Decile 10 (D10), and the lowest-priority entities receive Decile 1 (D1). Equal-count, percentile, rank-based, and direct mathematical deciling formulas were not used.
+ 
+If a single entity's score is large enough to cross multiple score buckets, document this behavior as:
+ 
+> The deciling method is intentionally stepwise and dependent on the previous row's decile. If one entity's score crosses more than one cumulative-score bucket, the workbook still reduces decile by only one level for that row because the mandatory formula uses prior-row stepwise logic.
+ 
 ---
-
-## Normalization
-
-Normalize each numeric metric to a 0–1000 scale before weighting.
-
-### Continuous-band min-max normalization
-
-This method protects against the distortion caused by extreme outliers. If a single HCP has 10× the Rx volume of the next highest, raw min-max normalization would compress all other HCPs to near-zero scores. Continuous-band normalization identifies the dominant data pattern and treats outliers as values at the edge of the normal range.
-
-**Algorithm for each numeric metric:**
-
-1. Sort unique non-blank numeric values ascending
-2. Calculate the gap between each value and the previous value
-3. Identify continuous groups where gap ≤ `max_allowed_gap` (default: 10)
-4. Select the dominant continuous group:
-   - Prefer the group with the most data points
-   - If tied: prefer the group with the wider range
-   - If still tied: prefer the group with the higher total row count
-5. Set `band_min` = minimum of the dominant group; `band_max` = maximum
-6. Cap raw values into the band: values < band_min → band_min; values > band_max → band_max
-7. Normalize the capped value: `score = ((capped_value - band_min) / (band_max - band_min)) × 1000`
-8. Clip to [0, 1000]
-9. If band_max = band_min, assign default score of 0
-
-**Example:**
-For data: `1, 1, 20, 21, 22, 23, 24, 25, 27, 29, 30, 31, 78, 90, 100`
-Dominant continuous group: `20–31` (10 values, gaps all ≤10)
-band_min = 20, band_max = 31
-Values below 20 → score = 0; values above 31 → score = 1000; values between 20–31 → scaled 0–1000
-
-**Directional alignment:**
-
-Positive-direction metrics (higher value = higher priority): diagnosed patient count, treatment patient count, claims count, clinical trials, publications, online presence, KOL score — normalize as above.
-
-Negative-direction metrics (lower value = higher priority): days since latest claim — reverse the score:
-`reversed_score = 1000 − normalized_days_since_claim`
-
-**Do not use:** percentile capping (P90, P95, P99), winsorization, quantile-based normalization, or any arbitrary percentile cutoff — unless the user explicitly requests it.
-
-### Recency scoring
-
-Use actual dates, not text strings.
-
-`days_since_latest_claim = reference_date − latest_claim_date`
-`recency_score = MAX(0, 1000 × (1 − days_since_latest_claim / recency_window_days))`
-
-Default recency window: 365 days. Document the reference date and window used.
-
-### Categorical scoring
-
-Map categorical fields to numeric scores using visible mapping tables:
-
-| Specialty | Score |
-|---|---:|
-| Target specialty | 1000 |
-| Adjacent specialty | 500 |
-| Non-relevant | 0 |
-
-| Institution setting | Score |
-|---|---:|
-| Academic community | 1000 |
-| Non-academic community | 500 |
-| Unknown | 0 |
-
-| KOL flag | Score |
-|---|---:|
-| Yes | 1000 |
-| No | 0 |
-
-Document all categorical mapping assumptions in the output.
-
+ 
+### 2. `raw_data`
+ 
+Include:
+ 
+- User-provided input data
+- No destructive transformations
+- Original field names preserved
+- Data-quality flags added as separate columns only:
+  - Missing ID flag
+  - Duplicate ID flag
+  - Missing metric flag
+  - Invalid numeric value flag
+  - Exclusion flag (if applicable)
 ---
-
-## Weights
-
-### Rank-decay weights (from priority order)
-
-`weight_i = (n + 1 − rank_i) / Σ(n + 1 − rank_all)`
-
-This produces naturally tapered weights from the most important to least important metric, without requiring the user to specify exact percentages.
-
-Default rare disease priority order:
+ 
+### 3. `metric_mapping`
+ 
+Create one row per candidate metric.
+ 
+| Field | Purpose |
+|---|---|
+| Source Column | Original dataset column |
+| Standard Metric Label | Business-friendly label |
+| Metric Role | Volume, value, adoption, opportunity, risk, recency, access, engagement, influence, strategic fit, or other |
+| Market Scope | Branded, rare disease, combined, or all |
+| Include in Score | Yes/No |
+| Directionality | Higher is better / Lower is better |
+| Normalization Method | Standard min-max, continuous-band min-max, capped min-max, max scaling, binary, categorical, recency, custom, or none |
+| Default Weight | Editable value |
+| User Weight | Editable value |
+| Effective Weight | Formula-driven weight used in score |
+| Mapping Status | Direct, inferred, manual, missing, excluded |
+| Notes | Assumptions or business rationale |
+ 
+Rules:
+ 
+- Do not require any specific metric.
+- Do not assign fixed weights unless the user provides them or approves defaults.
+- If the user has not selected metrics, infer likely candidate metrics from the data and ask for confirmation.
+- If the user asks to proceed without confirmation, use all suitable numeric metrics marked as relevant and document the assumption.
+- If directionality is unclear, infer directionality only when commercially obvious and document the assumption.
+- If directionality is not commercially obvious, ask the user before finalizing the workbook.
+---
+ 
+### 4. `normalization_helper`
+ 
+Include helper tables for:
+ 
+- Included scoring metrics
+- Metric type (numeric or categorical)
+- Directionality (positive or negative)
+- Normalization method
+- Raw minimum and raw maximum
+- Band minimum (`band_min`) and band maximum (`band_max`) for continuous-band metrics
+- `max_allowed_gap` configurable cell for continuous-band metrics
+- Sorted unique values, gap from previous value, continuous group ID, group count, group minimum, group maximum, selected dominant group flag — for each continuous-band metric
+- Floor values and cap values for capped metrics
+- Default weights, user weights, and effective weights
+- Weight check (must sum to 100%)
+- Decile settings
+- Tier thresholds
+- Exclusion rules
+- Named range definitions or equivalent helper labels
+- Categorical mapping tables
+- Recency window (configurable cell)
+- Notes and assumptions
+The `normalization_helper` sheet must include these deciling settings:
+ 
+| Setting | Value |
+|---|---|
+| Deciling Method | Cumulative-score stepwise deciling |
+| Total Priority Score | Formula-driven sum of final priority scores |
+| Decile Score Bucket | Total Priority Score / 10 |
+| First Decile Seed | 10 |
+| Highest Priority Decile | 10 (D10) |
+| Lowest Priority Decile | 1 (D1) |
+| Alternate Deciling Allowed | No (unless user explicitly requests) |
+ 
+Use editable cells for all assumptions and thresholds.
+ 
+---
+ 
+### 5. `scoring_calculator`
+ 
+Include one row per targetable entity.
+ 
+Include:
+ 
+- Entity ID
+- Available descriptive fields (HCP name, NPI, specialty, institution, geography, territory)
+- Raw mapped scoring metrics
+- Capped metric values (for continuous-band or capped metrics)
+- Normalized metric columns (0–1 scale for branded; 0–1000 scale for rare disease or combined)
+- Weighted metric contribution columns
+- Component scores when applicable (e.g., patient opportunity score, influence score, branded opportunity score)
+- Composite score
+- Final priority score (rounded to 5 decimal places)
+- Rank
+- Sort order helper
+- Cumulative score
+- Cumulative final priority score percentage
+- Prior decile helper
+- Decile
+- Tier
+- Inclusion override
+- Exclusion override
+- Final targeting status
+- Recommended action
+- Primary score driver
+- Secondary score driver
+- Data-quality warning
+Every derived field must use Excel formulas.
+ 
+The scoring table must be sorted or formula-calculated in descending order of `Final Priority Score`, where the highest-priority entity appears first and deciling is applied after sorting.
+ 
+---
+ 
+### 6. `final_target_list`
+ 
+Create a CRM-ready output linked from `scoring_calculator`.
+ 
+Include available fields such as:
+ 
+- Entity ID, entity name, NPI or other identifier
+- Specialty, institution name, institution setting
+- Geography, territory, account or affiliation
+- Diagnosed patient count, treatment patient count, total claims count (if available)
+- Latest claim date, days since latest claim (if available)
+- Clinical trials count or score (if available)
+- Publications count or score (if available)
+- Online presence score (if available)
+- KOL flag or score (if available)
+- Selected raw metrics
+- Normalized metric scores
+- Component scores (if applicable)
+- Composite score
+- Final priority score
+- Cumulative final priority score percentage
+- Rank
+- Decile
+- Tier
+- Inclusion override
+- Exclusion override
+- Final targeting status
+- Recommended action
+- Primary score driver
+- Secondary score driver
+- Data-quality warnings
+Do not invent fields that are not in the input unless the user asks for a template. Do not hardcode final values in this sheet. Use formulas or references from `scoring_calculator`.
+ 
+---
+ 
+### 7. `final_summary_dashboard`
+ 
+Include formula-driven summaries for:
+ 
+- Count by decile
+- Count by tier
+- Count by final targeting status
+- Included vs excluded entity count
+- Average score by decile
+- Total score by decile
+- Score distribution
+- Metric contribution summary
+- Data-quality flag counts
+- Recommended action summary
+- Deployment summary
+---
+ 
+## Market-Specific Scoring Logic
+ 
+### Branded Market
+ 
+For branded market targeting, prioritize market activity, commercial opportunity, and sales or claims proxies.
+ 
+Recommended scoring approach:
+ 
+1. Apply business strategy filters.
+2. Score market volume, value, or adjusted opportunity.
+3. Score access, engagement, recency, and adoption where available.
+4. Normalize and weight relevant metrics using standard min-max normalization (0–1 scale).
+5. Calculate the final priority score (scaled to 0–100).
+6. Sort by final priority score in descending order.
+7. Assign cumulative-score stepwise deciles.
+8. Apply field capacity or business rules.
+---
+ 
+### Rare Disease Market
+ 
+For rare disease targeting, prioritize both patient opportunity and influence.
+ 
+Recommended scoring approach:
+ 
+1. Score patient opportunity:
+   - Diagnosed patient count
+   - Treatment patient count
+   - Total claims count
+   - Recency of activity
+2. Score strategic fit:
+   - Specialty
+   - Institution setting
+   - KOL flag or score
+3. Score influence:
+   - Clinical trials
+   - Publications
+   - Online presence
+4. Normalize numeric metrics using continuous-band min-max normalization (0–1000 scale).
+5. Map categorical metrics into numeric scores using editable mapping tables.
+6. Apply effective weights.
+7. Calculate the final priority score (on 0–1000 scale, or divide by 10 for 0–100 scale if user requests).
+8. Sort in descending order before deciling.
+9. Assign cumulative-score stepwise deciles.
+10. Apply tiers using decile cutoffs.
+Default rare disease priority order (if user provides no weights):
+ 
 1. Diagnosed patient count
 2. Treatment patient count
 3. Recency
@@ -165,135 +331,512 @@ Default rare disease priority order:
 8. Publications
 9. Online presence
 10. KOL flag or score
-
-Adjust the order based on which metrics are present in the uploaded data, and based on indication-specific clinical context (e.g., for a disease where diagnosis is driven by genetic testing rather than clinical volume, clinical trials and publications should rank higher than patient counts).
-
-### User-defined weights
-
-If the user provides weights, normalize them to sum to 100%:
-`effective_weight_i = user_weight_i / Σ(user_weight_all)`
-
-Show the weight table in the output, including: metric name, rank or user weight, effective weight %, normalization band, and directional alignment.
-
 ---
-
-## Composite score
-
-`final_priority_score = Σ(normalized_metric_score_i × effective_weight_i)`
-
-On a 0–1000 scale if normalized scores are 0–1000. Convert to 0–100 only if the user specifically requests it.
-
+ 
+### Combined Market
+ 
+For combined targeting, preserve both branded market value and rare disease strategic relevance.
+ 
+Recommended scoring approach:
+ 
+1. Score branded opportunity component.
+2. Score rare disease opportunity and influence component.
+3. Create a combined final priority score from both components.
+4. Preserve component scores in the workbook so the user can explain why each HCP is prioritized.
+5. Assign deciles and tiers using the combined score unless the user requests separate branded and rare disease deciles.
 ---
-
-## Sorting and cumulative scoring
-
-Before deciling:
-1. Sort all HCPs by final priority score descending
-2. Compute cumulative priority score: running sum from rank 1 to rank N
-3. Compute cumulative %: `cumulative_% = cumulative_sum / total_sum × 100`
-
-This cumulative % is the basis for decile assignment.
-
+ 
+## Normalization
+ 
+### Standard Min-Max Normalization (Branded Market)
+ 
+Use standard min-max normalization when outliers are not a primary concern.
+ 
+Normalized scale: 0 to 1 (final priority score scaled to 0–100).
+ 
+**Higher-is-better metrics:**
+```excel
+=IF(metric_max=metric_min,0,(raw_value-metric_min)/(metric_max-metric_min))
+```
+ 
+**Lower-is-better metrics:**
+```excel
+=IF(metric_max=metric_min,0,(metric_max-raw_value)/(metric_max-metric_min))
+```
+ 
+- For **capped min-max metrics**: apply the floor and cap before normalization.
+- For **binary metrics**: convert user-approved positive values to `1` and negative values to `0`.
+- For **categorical metrics**: use an editable mapping table.
+- For **date or recency metrics**: convert dates to a numeric recency measure before normalization.
+All normalized scores must be between `0` and `1`.
+ 
 ---
-
-## Deciling logic
-
-Assign deciles based on cumulative descending priority score contribution. D10 = highest priority.
-
-| Cumulative % range | Decile |
+ 
+### Continuous-Band Min-Max Normalization (Rare Disease and Combined Markets)
+ 
+Use continuous-band min-max normalization when outliers are present. Do not use percentiles, quantiles, P90, P95, P99, or winsorization unless the user explicitly requests it.
+ 
+Normalized scale: 0 to 1000.
+ 
+Calculation steps:
+ 
+1. Sort the unique non-blank numeric values in ascending order.
+2. Calculate the gap between each value and the previous value.
+3. Identify continuous groups where the gap between adjacent values is less than or equal to a configurable `max_allowed_gap`.
+4. Select the dominant continuous group as the normalization band:
+   - Prefer the group with the highest number of data points.
+   - If tied, prefer the group with the wider range.
+   - If still tied, prefer the group with the higher total HCP count or row count.
+5. Set:
+   - `band_min = minimum value of the selected continuous group`
+   - `band_max = maximum value of the selected continuous group`
+6. Before normalization, cap the raw value into the selected band:
+   - Values below `band_min` are treated as `band_min`.
+   - Values above `band_max` are treated as `band_max`.
+7. Normalize the capped value:
+   `normalized_score = ((capped_value - band_min) / (band_max - band_min)) * 1000`
+8. Clip the final normalized score between 0 and 1000:
+   `final_normalized_score = MIN(1000, MAX(0, normalized_score))`
+9. If `band_max = band_min`, assign a safe default normalized score of `0`.
+For negative-priority metrics, either transform the metric so higher values mean higher priority, or reverse the normalized score:
+`reversed_normalized_score = 1000 - normalized_score`
+ 
+Expose all continuous-band normalization helper values (sorted unique values, gaps, continuous group IDs, group counts, group min, group max, selected band, `max_allowed_gap`) in the `normalization_helper` sheet.
+ 
+---
+ 
+### Recency Scoring
+ 
+Recency must use actual dates, not text strings.
+ 
+Calculate days since latest claim:
+`days_since_latest_claim = today_date - latest_claim_date`
+ 
+Preferred recency score formula (more recent HCPs receive higher scores):
+`recency_score = MAX(0, 1000 * (1 - days_since_latest_claim / recency_window_days))`
+ 
+Store `recency_window_days` in a visible helper cell.
+ 
+---
+ 
+### Categorical Scoring
+ 
+Map categorical metrics to numeric priority scores before weighting using visible editable mapping tables.
+ 
+**Specialty mapping example:**
+ 
+| Specialty | Specialty Score |
+|---|---:|
+| Relevant specialist | 1000 |
+| Adjacent specialist | 500 |
+| Non-relevant specialty | 0 |
+ 
+**Institution setting mapping example:**
+ 
+| Institution Setting | Institution Score |
+|---|---:|
+| Academic community | 1000 |
+| Non-academic community | 500 |
+| Unknown | 0 |
+ 
+**KOL flag mapping example:**
+ 
+| KOL Flag | KOL Score |
+|---|---:|
+| Yes | 1000 |
+| No | 0 |
+ 
+Use explicit assumptions when the user has not supplied categorical mappings.
+ 
+---
+ 
+## Weights
+ 
+Use user-defined weights when provided.
+ 
+If the user provides only priority order, convert ranks into rank-decay weights:
+`rank_weight_i = (n + 1 - priority_rank_i) / sum(n + 1 - priority_rank_all_metrics)`
+ 
+Normalize effective weights so they always sum to 100%:
+`effective_weight_i = user_weight_i / sum(user_weight_all_metrics_included)`
+ 
+If no weights are provided and the user wants speed, assign equal weights across all included metrics and document the assumption.
+ 
+Do not hardcode final weights unless the user explicitly provides them.
+ 
+The weight table in `normalization_helper` must include:
+ 
+- Metric name
+- User-provided weight or priority rank
+- Normalized effective weight
+- Directionality
+- Normalization method
+- Selected `band_min` and `band_max` (if numeric, continuous-band)
+- Notes or assumptions
+---
+ 
+## Composite Score Calculation
+ 
+### Step 6 — Calculate Effective Weights
+ 
+```excel
+=IF(include_in_score="Yes",selected_weight/SUM(all_selected_weights),0)
+```
+ 
+### Step 7 — Calculate Composite Score
+ 
+Calculate one weighted contribution per included metric:
+```excel
+=normalized_metric_score * effective_weight
+```
+ 
+Calculate composite score as the sum of weighted metric contributions:
+```excel
+=SUM(weighted_metric_contribution_columns)
+```
+ 
+**For branded market (0–1 normalized scale):**
+Scale final priority score to 0–100:
+```excel
+=ROUND(composite_score * 100, 5)
+```
+ 
+**For rare disease and combined markets (0–1000 normalized scale):**
+The final priority score is the composite score on the 0–1000 scale. If the user requests 0–100 output:
+```excel
+=ROUND(composite_score / 10, 5)
+```
+ 
+The final priority score must always be stored and displayed to exactly **5 decimal places**. All downstream references to the final priority score must consume the full 5-decimal-place value to preserve precision.
+ 
+---
+ 
+## Mandatory Cumulative-Score Stepwise Deciling
+ 
+### Step 8 — Apply Deciling
+ 
+Use cumulative-score stepwise deciling **only** unless the user explicitly requests a different method.
+ 
+**Sorting before deciling:**
+ 
+Before deciling, the final scored entity list must be sorted by `Final Priority Score` in descending order. The highest-priority entities appear first. Cumulative score and deciles are calculated after sorting.
+ 
+**Do not use any other deciling method. Do not use:**
+ 
+- Equal-count deciling
+- Percentile deciling
+- Rank-based deciling
+- `ROUNDUP` deciling
+- `ROUNDDOWN` deciling
+- `PERCENTRANK` deciling
+- `NTILE` deciling
+- `QUARTILE` deciling
+- Direct mathematical decile assignment
+- Any formula that assigns decile without using prior-row decile logic
+**The only allowed deciling logic:**
+ 
+```excel
+=IF(current_cumulative_score<=((11-prior_decile)*(total_priority_score/10)),prior_decile,prior_decile-1)
+```
+ 
+This logic must be implemented using structured references, named ranges, helper columns, or dynamically generated references.
+ 
+**Original cell-reference example:**
+```excel
+=IF(AI15<=((11-AJ14)*($AO$3)),AJ14,AJ14-1)
+```
+ 
+Where:
+- `AI15` = current row's cumulative score
+- `AJ14` = previous row's decile
+- `$AO$3` = total priority score divided by 10
+For reusable workbook generation, do not hardcode the exact column letters or row numbers.
+ 
+**Required deciling helper fields:**
+ 
+| Helper Field | Purpose |
 |---|---|
-| 0–10% | D10 |
-| 10–20% | D9 |
-| 20–30% | D8 |
-| 30–40% | D7 |
-| 40–50% | D6 |
-| 50–60% | D5 |
-| 60–70% | D4 |
-| 70–80% | D3 |
-| 80–90% | D2 |
-| 90–100% | D1 |
-
-D10 = the first 10% of cumulative score — this decile contains the smallest number of HCPs but the highest-priority ones.
-D1 = the last 10% of cumulative score — this decile contains the largest number of HCPs (many HCPs with low individual scores).
-
-If the user requests equal-count deciles instead, use rank-based deciling and state clearly that the logic has changed.
-
+| Final Priority Score | Final score used for prioritization |
+| Sort Order Helper | Ensures entities are sorted from highest to lowest priority score |
+| Cumulative Score | Running cumulative sum of final priority score after sorting |
+| Cumulative Final Priority Score % | Cumulative score divided by total priority score |
+| Total Priority Score | Sum of all included entities' final priority scores |
+| Decile Score Bucket | Total Priority Score / 10 |
+| Prior Decile Helper | Previous row's assigned decile |
+| Decile | Final assigned decile using the mandatory stepwise formula |
+ 
+The **first scored row** must be seeded as **Decile 10**.
+ 
+For every subsequent scored row:
+```excel
+=IF([@[Cumulative Score]]<=((11-[@[Prior Decile Helper]])*Decile_Score_Bucket),[@[Prior Decile Helper]],[@[Prior Decile Helper]]-1)
+```
+ 
+**Decile assignment table:**
+ 
+| Cumulative Score Range | Decile |
+|---|---|
+| 0% to 10% of total priority score | 10 (D10) |
+| 10% to 20% of total priority score | 9 (D9) |
+| 20% to 30% of total priority score | 8 (D8) |
+| 30% to 40% of total priority score | 7 (D7) |
+| 40% to 50% of total priority score | 6 (D6) |
+| 50% to 60% of total priority score | 5 (D5) |
+| 60% to 70% of total priority score | 4 (D4) |
+| 70% to 80% of total priority score | 3 (D3) |
+| 80% to 90% of total priority score | 2 (D2) |
+| 90% to 100% of total priority score | 1 (D1) |
+ 
+Each decile represents approximately 10% of **total priority score**, not 10% of entity count.
+ 
+The decile formula must remain stepwise and dependent on the previous row's decile.
+ 
 ---
-
-## Tiering
-
-Default rare disease tiering (adjust if the user specifies custom cutoffs):
-- Tier 1: D8–D10
-- Tier 2: D5–D7
-- Tier 3: D1–D4
-
-Document the tier cutoffs and validate that the resulting HCP/rep ratio falls within the optimal range for the market type (rare disease specialty: 50–100 HCPs/rep; branded specialty: 100–200 HCPs/rep).
-
+ 
+## Tiering Logic
+ 
+### Step 9 — Create Tiers
+ 
+Create tiers from decile values or user-defined thresholds.
+ 
+**Default tiering for branded market:**
+ 
+| Tier | Deciles |
+|---|---|
+| Tier 1 | Decile 10 and Decile 9 |
+| Tier 2 | Decile 8 and Decile 7 |
+| Tier 3 | Decile 6, Decile 5, and Decile 4 |
+| Monitor | Decile 3, Decile 2, and Decile 1 |
+ 
+**Default tiering for rare disease market (small universe):**
+ 
+| Tier | Deciles |
+|---|---|
+| Tier 1 | D8, D9, D10 |
+| Tier 2 | D5, D6, D7 |
+| Tier 3 | D1, D2, D3, D4 |
+ 
+Tier thresholds must be stored in editable helper tables and must be formula-driven. Do not hardcode tier labels in a way that prevents user edits.
+ 
+If the user provides custom tier cutoffs, use the custom cutoffs and document them.
+ 
 ---
-
-## Inclusion and exclusion overrides
-
-Apply override logic to the final tier/targeting status:
-
-1. If an exclusion override exists → final status = `Exclude` (takes priority over score)
-2. If an inclusion override exists → final status = `Include` (overrides score-based exclusion)
-3. Otherwise → apply score, decile, tier, and field capacity rules
-
-Override examples:
-- Forced inclusion: strategic KOL below T1 cutoff; field-validated priority; known referral network leader
-- Forced exclusion: inactive HCP; compliance restriction; invalid specialty; duplicate record
-
+ 
+## Inclusion and Exclusion Overrides
+ 
+### Step 10 — Apply Inclusion and Exclusion Rules
+ 
+Apply user-provided inclusion and exclusion rules after scoring unless the user explicitly requests exclusions before scoring.
+ 
+Examples of possible exclusion rules:
+ 
+- Missing entity ID
+- Inactive HCP
+- Non-target specialty
+- Non-promotable account
+- Restricted access
+- Do-not-call flag
+- Missing required metric
+- Invalid specialty
+- Duplicate record
+- Compliance restriction
+- User-defined suppression flag
+Examples of possible inclusion overrides:
+ 
+- Include strategic KOL regardless of score
+- Include due to field input
+- Include due to leadership priority
+- Include due to known referral network influence
+Exclusion logic must be visible and traceable. Excluded entities should remain visible in the workbook unless the user asks to remove them.
+ 
+**Recommended final targeting status formula:**
+```excel
+=IF([@[Exclusion Override]]<>"","Exclude",IF([@[Inclusion Override]]<>"","Include",IF([@Tier]="Tier 1","Include",IF([@Tier]="Tier 2","Consider","Lower Priority"))))
+```
+ 
 ---
-
-## Quality checks
-
-Before delivering the briefing, confirm:
-
-1. All scoring metrics are directionally aligned (higher normalized score = higher priority)
-2. Weights sum to 100% after normalization
-3. No missing HCP identifiers in the scored output
-4. Duplicate HCP identifiers flagged
-5. Recency scoring used actual dates, not text strings
-6. Continuous-band band_min and band_max documented for every numeric metric
-7. Normalized scores are all between 0 and 1000
-8. Low outliers capped to band_min; high outliers capped to band_max
-9. Percentile or winsorization logic NOT used (unless explicitly requested)
-10. Inclusion and exclusion overrides applied in correct priority order
-11. Final priority score sort is descending before deciling
-12. Cumulative score % computed after sorting
-13. D10 = highest priority decile; D1 = lowest
-14. Tier counts produce defensible HCP/rep ratios for the market type
-15. All categorical mappings are documented
-
+ 
+## Recommended Action
+ 
+### Step 11 — Generate Recommended Action
+ 
+Generate recommended action using decile, tier, inclusion status, and available strategic fields.
+ 
+| Condition | Recommended Action |
+|---|---|
+| Included and Tier 1 | High-priority field engagement |
+| Included and Tier 2 | Maintain active engagement |
+| Included and Tier 3 | Selective engagement |
+| Included and Monitor | Monitor or low-touch engagement |
+| Excluded | Do not deploy |
+ 
+Recommended action logic must be formula-driven and configurable through helper tables where possible.
+ 
 ---
-
-## Required consultancy output sections
-
-The final briefing must include all of the following:
-
-**A. Scoring Framework Summary**
-Market type, total HCPs scored, normalization method, score scale, deciling method, tier cutoffs, final weight table with normalization bands, and any adjustments made during computation.
-
-**B. Score Distribution Analysis**
-Full decile breakdown table (count, % of universe, score range, tier per decile). Tier summary table with HCP counts and HCPs/rep. Narrative interpretation of what the distribution reveals about the HCP universe.
-
-**C. Metric Contribution Analysis**
-For each metric: normalization band, outlier capping impact, % of HCPs above 500 score, differentiation power. Highlight the top 2–3 most differentiating metrics with commercial rationale. Flag low-differentiation metrics as weight reduction candidates.
-
-**D. Top HCP Insights**
-Table of top 20 T1 HCPs with specialty, state, institution, final score, primary and secondary score drivers. Narrative commentary on the top 5–10. Override review flags (forced-include candidates, data quality concerns).
-
-**E. Pareto Concentration Analysis**
-% of HCPs accounting for top 50% and 80% of cumulative score. Commercial interpretation: what does the concentration profile mean for deployment scope?
-
-**F. Deployment Recommendation**
-Tier coverage options table (HCPs, HCPs/rep, % score captured). Clear recommendation on which tier combination to deploy with commercial rationale. Phasing guidance if launch context is active.
-
+ 
+## Final Target List
+ 
+### Step 12 — Build Final Target List
+ 
+Create a CRM-ready final target list linked from `scoring_calculator`.
+ 
+The final target list should include only fields available in the input or fields created transparently by the workbook.
+ 
+Do not invent HCP names, specialties, geographies, accounts, affiliations, or CRM fields.
+ 
 ---
-
-## Output rules
-
-1. All output is delivered as structured markdown in chat. No Excel files are created.
-2. Show all scoring methodology transparently — band_min, band_max, weights, score examples.
-3. Reference actual HCP counts and metric values from the data. Never use generic placeholders.
-4. Make recommendations directly. Present the data, explain the commercial implication, state the action.
+ 
+## Final Summary Dashboard
+ 
+### Step 13 — Build Final Summary Dashboard
+ 
+Create formula-driven summaries. At minimum include:
+ 
+- Count by decile
+- Count by tier
+- Included vs excluded count
+- Average score by decile
+- Total score by decile
+- Data-quality flag counts
+- Metric contribution summary
+- Recommended action summary
+---
+ 
+## Generic Workflow
+ 
+### Step 1 — Confirm or Infer the Objective
+ 
+Identify the targeting objective from the user's request.
+ 
+Examples of possible objectives:
+ 
+- Growth targeting
+- Retention targeting
+- Launch targeting
+- Defense targeting
+- Conversion targeting
+- Whitespace targeting
+- Access prioritization
+- Account prioritization
+- Rare disease patient opportunity
+- KOL/influence prioritization
+- Field deployment
+- General prioritization
+If the objective is missing, proceed with a generic field-prioritization objective and clearly document the assumption.
+ 
+---
+ 
+### Step 2 — Identify the Entity Level and Market Type
+ 
+Determine the level of scoring (HCP, NPI, Account, Facility, Territory) and confirm the market type (branded, rare disease, or combined).
+ 
+The entity ID must be present or created from available fields. If no reliable ID exists, flag the issue and create a temporary row-level ID only for workbook processing.
+ 
+---
+ 
+### Step 3 — Identify Candidate Metrics
+ 
+Review available numeric, categorical, binary, and date fields.
+ 
+Classify fields into roles such as:
+ 
+- Volume, value, opportunity, adoption, recency, access, engagement, risk, influence, strategic fit, exclusion, or descriptive only
+For rare disease and combined markets, additionally classify:
+ 
+- Patient opportunity metrics (diagnosed patient count, treatment patient count, claims count)
+- Influence metrics (clinical trials, publications, online presence, KOL)
+- Strategic fit metrics (specialty, institution setting)
+Do not assume a metric should be used only because it exists. Include a metric in scoring only when it is selected by the user, clearly relevant to the stated objective, or approved through documented assumptions.
+ 
+---
+ 
+### Step 4 — Build the Metric Mapping
+ 
+Create the `metric_mapping` table before scoring.
+ 
+For every candidate scoring metric, define all fields listed in the `metric_mapping` worksheet section above.
+ 
+If directionality is unclear, ask the user. If the user wants speed, infer directionality based on objective and document the assumption.
+ 
+---
+ 
+### Step 5 — Normalize Metrics
+ 
+Select the appropriate normalization method based on market type:
+ 
+- **Branded market**: Standard min-max normalization (0–1 scale)
+- **Rare disease or combined market**: Continuous-band min-max normalization (0–1000 scale)
+Follow the normalization formulas and rules described in the Normalization section above.
+ 
+All normalization settings must be visible and editable in `normalization_helper`.
+ 
+---
+ 
+## Formula Discipline
+ 
+When producing formulas or workbook logic:
+ 
+- Make every derived field formula-driven where possible.
+- Avoid hardcoded scores except for user-approved mapping tables.
+- Keep weights in a separate editable table.
+- Make weights sum to 100%; if not, normalize effective weights.
+- Keep directionality explicit: higher value must always mean higher priority after normalization.
+- Provide both raw metric and normalized metric columns.
+- Preserve separate components for patient opportunity, influence, branded opportunity, market size, brand behavior, recency, strategic fit, engagement, access, and override logic when those components exist in the data.
+- Do not use fixed Excel column letters or fixed row numbers in reusable formulas.
+- Use Excel tables, structured references, named ranges, helper tables, dynamic arrays, or generated references.
+- Deciling must use the mandatory cumulative-score stepwise formula and no other formula unless explicitly requested by the user.
+---
+ 
+## Quality Checks Before Final Answer
+ 
+Before finalizing any output, verify:
+ 
+- [ ] Raw data has been preserved.
+- [ ] Market type has been confirmed or documented as an assumption.
+- [ ] Entity ID is present or a temporary row-level ID has been created and flagged.
+- [ ] Duplicate IDs are flagged.
+- [ ] Missing metrics are flagged.
+- [ ] Invalid numeric values are flagged.
+- [ ] Candidate metrics are mapped.
+- [ ] Included scoring metrics are clearly identified.
+- [ ] Metric directionality is explicit.
+- [ ] Normalization method is appropriate for the market type.
+- [ ] For rare disease and combined markets: continuous-band `band_min` and `band_max` are visible for every normalized numeric metric.
+- [ ] For rare disease and combined markets: normalized scores are between 0 and 1000.
+- [ ] For rare disease and combined markets: percentile, quantile, P90, P95, P99, or winsorization logic is not used unless explicitly requested.
+- [ ] Weights are editable and effective weights sum to 100%.
+- [ ] Composite score is formula-driven.
+- [ ] Final priority score is formula-driven and rounded to 5 decimal places.
+- [ ] Records are sorted from highest score to lowest score before cumulative deciling.
+- [ ] Cumulative score is formula-driven.
+- [ ] Cumulative final priority score percentage is formula-driven.
+- [ ] Total priority score is formula-driven.
+- [ ] Decile score bucket equals total priority score divided by 10.
+- [ ] First scored row is seeded as Decile 10.
+- [ ] Decile is assigned only using cumulative-score stepwise deciling.
+- [ ] Equal-count, percentile, rank-based, and direct mathematical deciling formulas are not used.
+- [ ] Tiering aligns to decile or user-defined thresholds.
+- [ ] Inclusion and exclusion overrides are visible and traceable.
+- [ ] Final targeting status is formula-driven.
+- [ ] Primary and secondary score drivers are identified.
+- [ ] Output is suitable for CRM or call-plan deployment.
+- [ ] DQ comparison is included when a comparison file is provided.
+- [ ] The workbook contains the 7 mandatory sheets.
+---
+ 
+## Response Style
+ 
+When responding to the user:
+ 
+- Think like a pharma commercial analytics consultant.
+- Be practical, direct, and implementation-oriented.
+- Prefer workbook-ready formulas and table structures over abstract methodology.
+- Clearly state assumptions.
+- Clearly distinguish user-provided inputs from inferred assumptions.
+- Clearly identify the market type and apply the appropriate normalization and weighting logic.
+- Do not overcomplicate unless the user requests advanced methodology.
+- If the user asks for an Excel workbook, create the workbook rather than only explaining the method.
+- If the user asks for methodology text only, provide a clean consultant-style methodology.
+- If required information is missing but the user wants speed, proceed with documented assumptions.
+- If required information is missing and affects correctness, ask the minimum necessary clarification.
