@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Download, Loader2, Map, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Download, Loader2, Map, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const ALIGNMENT_DASHBOARD_URL = "https://terrisense.auxo.tech/dashboard";
 
 export const Route = createFileRoute("/alignment")({
   head: () => ({
@@ -14,13 +17,12 @@ export const Route = createFileRoute("/alignment")({
 
 // ── Hardcoded config, shown once "gathered" from the Sizing module ─────────────
 
-const TARGET_TERRITORIES = 65;
+const TARGET_TERRITORIES = 15;
 const TERRITORY_RANGE = { min: 20, max: 100, step: 5 };
 
 const WEIGHTED_COLUMNS = [
-  { name: "ZIP_Population", weight: 30 },
-  { name: "Patient_Prevalence", weight: 40 },
-  { name: "Patient_Start_Forms", weight: 30 },
+  { name: "ZIP_Population", weight: 60 },
+  { name: "Patient_Prevalence", weight: 40 }
 ];
 
 const GATHERING_LABELS = [
@@ -148,6 +150,15 @@ function AlignmentPage() {
                 <p className="mt-3 text-[11px] italic text-muted-foreground">
                   * Ensure column names match your Excel file header exactly.
                 </p>
+              </div>
+
+              <div className="mt-7 flex justify-end border-t border-border/50 pt-4">
+                <Button asChild className="gap-2">
+                  <a href={ALIGNMENT_DASHBOARD_URL}>
+                    Proceed to Alignment
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
               </div>
             </div>
           </div>
