@@ -807,7 +807,7 @@ function ContextPage() {
                         color="border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20"
                       >
                         <RecRow label="Territory design" value={recommendations.for_alignment?.territory_design_philosophy} />
-                        <RecRow label="Territory count" value={recommendations.for_alignment?.territory_count_estimate} />
+                        <RecRow label="Territory count" value="15" />
                         <RecRow label="Workload tolerance" value={recommendations.for_alignment?.workload_tolerance_pct != null ? `±${recommendations.for_alignment.workload_tolerance_pct}%` : undefined} />
                         <RecRow label="Rationale" value={recommendations.for_alignment?.rationale} />
                       </RecommendationCard>
