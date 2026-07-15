@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, KeyboardEvent } from "react";
+import { useEffect, useRef, useState, KeyboardEvent } from "react";
 import {
   Sparkles, Loader2, CheckCircle2, ChevronRight, ChevronLeft, X, Plus,
   Target, Users, Map, Save, Download, ArrowRight, Pill, Swords, Rocket,
@@ -91,6 +91,38 @@ const STEP_MESSAGES = [
   "Noted. Could you help me understand where we are in the commercial journey?",
   "Almost done. Could you help me understand the commercial goals and field force plans?",
 ];
+
+// Hardcoded values Agent "infers" from the Drug & Indication section for every later step —
+// each one auto-fills a beat after landing on that step, badge-labeled per step.
+const STEP_AUTO_FILL: Partial<Record<number, Partial<FormState>>> = {
+  1: {
+    therapeuticArea: "Immunology",
+    patientPopulation: "Above 12 yr old",
+    prevalenceEstimate: "<10000 patients",
+    rareDisease: "Yes",
+  },
+  2: {
+    competitors: ["None"],
+    marketLeader: "Unknown",
+    competitivePositioning: "Niche / Orphan",
+  },
+  3: {
+    launchDate: "Launched in 2024",
+    commercialStage: "Post-launch",
+    keyMilestones: ["None"],
+  },
+  4: {
+    targetSpecialties: ["Immunologists"],
+    geographicFocus: "National",
+  },
+};
+
+const AI_FILL_LABELS: Partial<Record<number, string>> = {
+  1: "Filling with AI",
+  2: "Generating with AI",
+  3: "Predicting with AI",
+  4: "Recommending with AI",
+};
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -292,12 +324,30 @@ function ContextPage() {
   const [saved, setSaved] = useState(false);
   // Guards against double-clicks firing handleStepSubmit twice before the step re-renders.
   const [isTransitioning, setIsTransitioning] = useState(false);
+  // Which step (if any) is currently showing its "Filling with AI" badge.
+  const [aiFillingStep, setAiFillingStep] = useState<number | null>(null);
   const responseRef = useRef<HTMLDivElement>(null);
   // Ref to accumulate the full streamed text — avoids stale-closure reads of rawResponse state.
   const rawRef = useRef("");
+  // Steps already auto-filled — prevents re-filling if the user navigates back and forth.
+  const autoFilledStepsRef = useRef<Set<number>>(new Set());
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  // Showcase Agent "inferring" the rest of the context from the drug/indication —
+  // each step after the first auto-fills a beat after you land on it.
+  useEffect(() => {
+    const overrides = STEP_AUTO_FILL[step];
+    if (!overrides || autoFilledStepsRef.current.has(step)) return;
+    autoFilledStepsRef.current.add(step);
+    setAiFillingStep(step);
+    const t = setTimeout(() => {
+      setForm((f) => ({ ...f, ...overrides }));
+      setAiFillingStep(null);
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [step]);
 
   // Completeness: count sections with at least one non-empty value
   const sectionFilled = [
@@ -447,8 +497,8 @@ function ContextPage() {
       >
       <div className="min-w-0 space-y-5">
 
-        {/* Single persistent chat bubble — hidden once analysis takes over */}
-        {!showAnalysis && <ChatBubble state={chatBubble} />}
+        {/* Single persistent chat bubble — only shown for the first section */}
+        {!showAnalysis && step === 0 && <ChatBubble state={chatBubble} />}
 
         {!showAnalysis && (
           <>
@@ -464,8 +514,14 @@ function ContextPage() {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <CurrentIcon className="h-4.5 w-4.5" />
                 </span>
-                <div>
+                <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold">{STEPS[step].title}</p>
+                  {aiFillingStep === step && (
+                    <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      {AI_FILL_LABELS[step]}…
+                    </span>
+                  )}
                 </div>
               </div>
 
