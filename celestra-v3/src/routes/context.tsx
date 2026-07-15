@@ -97,7 +97,7 @@ const STEP_MESSAGES = [
 // each one auto-fills a beat after landing on that step, badge-labeled per step.
 const STEP_AUTO_FILL: Partial<Record<number, Partial<FormState>>> = {
   1: {
-    therapeuticArea: "Immunology",
+    therapeuticArea: "Oncology/Hematology",
     patientPopulation: "Above 12 yr old",
     prevalenceEstimate: "<10000 patients",
     rareDisease: "Yes",
@@ -113,7 +113,7 @@ const STEP_AUTO_FILL: Partial<Record<number, Partial<FormState>>> = {
     keyMilestones: ["None"],
   },
   4: {
-    targetSpecialties: ["Immunologists"],
+    targetSpecialties: ["Hematologists", "Oncologists"],
     geographicFocus: "National",
   },
 };
@@ -630,7 +630,7 @@ function ContextPage() {
                     <div>
                       <FieldLabel>Therapeutic area</FieldLabel>
                       <Pills
-                        options={["Oncology", "Rare Disease", "Neurology", "Cardiology", "Immunology", "Endocrinology", "Infectious Disease", "Dermatology"]}
+                        options={["Oncology/Hematology", "Rare Disease", "Neurology", "Cardiology", "Immunology", "Endocrinology", "Infectious Disease", "Dermatology"]}
                         value={form.therapeuticArea}
                         onChange={(v) => set("therapeuticArea", v)}
                       />
