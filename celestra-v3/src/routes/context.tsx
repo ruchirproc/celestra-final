@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, KeyboardEvent } from "react";
 import {
   Sparkles, Loader2, CheckCircle2, ChevronRight, ChevronLeft, X, Plus,
   Target, Users, Map, Save, Download, ArrowRight, Pill, Swords, Rocket,
+  Link2, ExternalLink,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -122,6 +123,31 @@ const AI_FILL_LABELS: Partial<Record<number, string>> = {
   2: "Generating with AI",
   3: "Predicting with AI",
   4: "Recommending with AI",
+};
+
+// Real, credible reference sources — only linked to their canonical top-level domain,
+// shown per step once that section has been auto-filled.
+interface SourceEntry {
+  name: string;
+  url: string;
+  note: string;
+}
+
+const SOURCES_BY_STEP: Partial<Record<number, SourceEntry[]>> = {
+  1: [
+    { name: "Orphanet", url: "https://www.orpha.net", note: "Rare disease prevalence and epidemiology reference" },
+    { name: "NORD", url: "https://rarediseases.org", note: "Rare disease patient population data" },
+  ],
+  2: [
+    { name: "ClinicalTrials.gov", url: "https://clinicaltrials.gov", note: "Competitor trial activity and pipeline" },
+    { name: "FDA.gov", url: "https://www.fda.gov", note: "Approved competitor therapies and regulatory status" },
+  ],
+  3: [
+    { name: "DailyMed (NIH)", url: "https://dailymed.nlm.nih.gov", note: "Approved drug labels and launch history" },
+  ],
+  4: [
+    { name: "IQVIA", url: "https://www.iqvia.com", note: "Field force and HCP specialty benchmarks" },
+  ],
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -280,7 +306,7 @@ const MEMORY_SUMMARIES = [
 
 function AgentMemoryPanel({ summaryIndex, isThinking }: { summaryIndex: number; isThinking: boolean }) {
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm lg:sticky lg:top-6">
+    <div className="rounded-xl border border-border bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <Sparkles className="h-3.5 w-3.5 text-primary" />
         <div>
@@ -304,6 +330,44 @@ function AgentMemoryPanel({ summaryIndex, isThinking }: { summaryIndex: number; 
           )}
         </p>
       </div>
+    </div>
+  );
+}
+
+// ── Sources panel ──────────────────────────────────────────────────────────────
+// Cites the real, credible references Agent draws on for the section currently
+// being worked on — swaps out entirely when the section changes, not cumulative.
+
+function SourcesPanel({ step }: { step: number }) {
+  const sources = SOURCES_BY_STEP[step] ?? [];
+
+  if (sources.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <Link2 className="h-3.5 w-3.5 text-primary" />
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground">Sources</p>
+          <p className="text-[10px] text-muted-foreground">Where Agent is learning from</p>
+        </div>
+      </div>
+      <ul className="divide-y divide-border">
+        {sources.map((source) => (
+          <li key={source.name} className="animate-in fade-in px-4 py-2.5 duration-500">
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+            >
+              {source.name}
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </a>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{source.note}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -858,8 +922,9 @@ function ContextPage() {
       </div>
 
       {!showAnalysis && (
-        <aside className="min-w-0">
+        <aside className="min-w-0 space-y-5 lg:sticky lg:top-6 lg:self-start">
           <AgentMemoryPanel summaryIndex={completedSections} isThinking={isTransitioning || isAnalyzing} />
+          <SourcesPanel step={step} />
         </aside>
       )}
       </div>

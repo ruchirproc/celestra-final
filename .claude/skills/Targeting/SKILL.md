@@ -12,6 +12,18 @@ The skill must remain generic. Do not hardcode scoring metrics, fixed weights, f
 The primary output must be a strictly formula-driven Excel workbook unless the user explicitly asks only for methodology text.
  
 ---
+
+## Mandatory output de-identification
+
+All visible deliverables must be de-identified. The agent may use the real drug/brand and client/company name internally to parse the prompt and validate rationale, but the workbook, chat response, sheet content, and file names must never expose the actual drug, brand, product, asset, company, customer, or client name.
+
+- Replace every actual drug, brand, product, or asset name with `Asset`.
+- Replace every actual client, customer, account, or company name with `Client`.
+- Apply the replacement everywhere: summary sheets, scoring rationale, chat narration, chart titles, and exported file names.
+- Individual HCP names/IDs are the working data of the target list itself and are not covered by this rule.
+- Before delivery, review all visible output for the actual drug/brand/product/client/company name and replace it if found.
+ 
+---
  
 ## Market Type
  
