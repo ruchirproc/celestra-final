@@ -39,7 +39,7 @@ This project has three custom skills available via `/` slash commands. Use the g
 - EDA on the HCP universe: tier structure, geographic distribution, data quality, Pareto concentration.
 - Market type classification: ultra-rare, rare disease specialty, specialty branded, hybrid, or primary care — with specific data signals.
 - Sizing parameter derivation: working days, calls/day, calls/HCP/year by tier, max reach cap — each with full arithmetic, benchmark range, and override triggers.
-- 10 mutually exclusive rep-count scenarios: Normal Workload baseline, 3 Reach scenarios (Aggressive/Moderate/Conservative), 3 Frequency scenarios (High-touch/Standard/Low-touch), and 3 Segment scenarios (Premium-tilt/Balanced/Cost-aware).
+- 7 mutually exclusive rep-count scenarios: Normal Workload baseline, 3 Reach scenarios (Aggressive/Moderate/Conservative), and 3 Frequency scenarios (High-touch/Standard/Low-touch).
 - Best-Fit Recommendation: specific scenario, rep count, commercial rationale, HCP/rep ratio validation, confidence level, and competitive benchmark context.
 - All visible output de-identified: drug/brand → `Asset`, client/company → `Client`.
 - All output delivered as a structured consultancy briefing in chat. No Excel workbook is generated.

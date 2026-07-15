@@ -1,6 +1,6 @@
 ---
 name: agent-sizing
-description: Field force sizing consultant agent. Reads an HCP universe file, performs exploratory data analysis, classifies the market type, researches competitive benchmarks, and delivers a full consultancy-grade sizing briefing — covering working-day rationale, calls/day derivation, calls/HCP/year by tier, reach caps, 10 rep-count scenarios, and a Best-Fit recommendation — all as a structured chat response. No Excel output. Use after agent-targeting has completed or directly with any tiered HCP file.
+description: Field force sizing consultant agent. Reads an HCP universe file, performs exploratory data analysis, classifies the market type, researches competitive benchmarks, and delivers a full consultancy-grade sizing briefing — covering working-day rationale, calls/day derivation, calls/HCP/year by tier, reach caps, 7 rep-count scenarios, and a Best-Fit recommendation — all as a structured chat response. No Excel output. Use after agent-targeting has completed or directly with any tiered HCP file.
 model: sonnet
 tools:
   - Read
@@ -143,7 +143,7 @@ Set T1 calls/HCP/year from market type first, then calibrate within the range by
 | Market type | T1 Calls/yr | T2 Calls/yr | T3 Calls/yr | Commercial logic |
 |---|---|---|---|---|
 | Non-rare specialty | 24 | 12 | 6 | Higher call cadence driven by volume-based promotional model; frequency is the primary share-of-voice lever across a broad accessible HCP base |
-| Rare disease specialty | 18 | 9 | 6 | Fewer calls per HCP; smaller accessible universe, restricted academic access, and longer scientific calls mean rep capacity is consumed faster per interaction |
+| Rare disease specialty | 12 | 6 | 0 | Fewer calls per HCP; smaller accessible universe, restricted academic access, and longer scientific calls mean rep capacity is consumed faster per interaction |
 | Ultra-rare / restricted | 12 | 6 | 4 | COE-only access, very small HCP pools, and highly relationship-driven call models; reps cannot and should not target high interaction volume |
 
 Non-rare markets carry more calls per HCP than rare disease markets because reps operate a volume-based promotional model — frequency is the primary share-of-voice lever. Rare disease reps make fewer but longer, more scientific calls, and face tighter access restrictions at academic centres.
@@ -187,9 +187,9 @@ This is the denominator for all rep count calculations that follow. Make it expl
 
 ---
 
-## Step 5 — Compute and narrate all 10 scenarios
+## Step 5 — Compute and narrate all 7 scenarios
 
-Compute rep counts for all 10 scenarios. Show each calculation.
+Compute rep counts for all 7 scenarios. Show each calculation.
 
 For standard reach and frequency scenarios:
 ```
@@ -204,8 +204,8 @@ Reps required = CEILING(Total calls / Rep capacity, 1)
 | Market type | T1 Max Reach | T2 Reach | T3 Reach | T1 Calls | T2 Calls | T3 Calls |
 |---|---|---|---|---|---|---|
 | Non-rare specialty | 95% | 75% | 50% | 24 | 12 | 6 |
-| Rare disease specialty | 90% | 70% | 50% | 18 | 9 | 6 |
-| Ultra-rare / restricted | 80% | 60% | 40% | 12 | 6 | 4 |
+| Rare disease specialty | 90% | 70% | 50% | 12 | 6 | 0 |
+| Ultra-rare / restricted | 80% | 60% | 40% | 12 | 6 | 0 |
 
 **Scenario parameters — Non-rare specialty market (T1 base: 95% reach / 24 calls):**
 
@@ -218,7 +218,6 @@ Reps required = CEILING(Total calls / Rep capacity, 1)
 | 5 | Frequency | High-touch | 95% | 75% | 50% | 30 | 18 | 9 |
 | 6 | Frequency | Standard | 95% | 75% | 50% | 24 | 12 | 6 |
 | 7 | Frequency | Low-touch | 95% | 75% | 50% | 18 | 9 | 6 |
-| 8–10 | Segment | see below | weighted | weighted | weighted | weighted | weighted | weighted |
 
 **Scenario parameters — Rare disease market (T1 base: 90% reach / 18 calls):**
 
@@ -231,17 +230,8 @@ Reps required = CEILING(Total calls / Rep capacity, 1)
 | 5 | Frequency | High-touch | 90% | 70% | 50% | 24 | 12 | 6 |
 | 6 | Frequency | Standard | 90% | 70% | 50% | 18 | 9 | 6 |
 | 7 | Frequency | Low-touch | 90% | 70% | 50% | 12 | 6 | 4 |
-| 8–10 | Segment | see below | weighted | weighted | weighted | weighted | weighted | weighted |
 
 Use the non-rare table for specialty branded and hybrid markets. Use the rare disease table for rare and ultra-rare markets (with ultra-rare T1 reach capped at 80%).
-
-For Segment scenarios, apply differentiated reach and frequency by HCP potential segment within each tier. Default splits: T1 = 30% high-potential / 70% standard-potential; T2 = 25% high-potential / 75% standard-potential. Use the market-type T1/T2 values as the anchor, then scale:
-
-| Segment sub-scenario | T1 High R/F | T1 Standard R/F | T2 High R/F | T2 Standard R/F |
-|---|---|---|---|---|
-| Premium-tilt | T1-max / T1-calls | T1-max×0.90 / T1-calls×0.60 | T2 / T2-calls | T2×0.70 / T2-calls×0.50 |
-| Balanced | T1-max / T1-calls×0.85 | T1-max×0.85 / T1-calls×0.55 | T2 / T2-calls×0.80 | T2×0.65 / T2-calls×0.40 |
-| Cost-aware | T1-max×0.95 / T1-calls×0.70 | T1-max×0.75 / T1-calls×0.40 | T2×0.85 / T2-calls×0.60 | T2×0.55 / T2-calls×0.25 |
 
 If more than 2 tiers are present, extend the taper for T3 using the T3 reach and calls from the market-type table above.
 
@@ -261,8 +251,6 @@ Then narrate each cluster with pharmaceutical consultancy-level commentary:
 
 **Frequency Scenarios ([low]–[high] reps):** [Narrate the depth-vs-breadth tradeoff. For a rare disease or first-in-class asset where disease awareness and clinical education are the primary commercial drivers, the High-touch scenario's investment in relationship depth is typically ROI-justified — each call advances prescriber confidence in ways that are not replicated by breadth alone. For a mature branded market where established prescribers are already familiar with the class, the Standard or Low-touch scenario may be more appropriate, redirecting investment toward reach expansion.]
 
-**Segment Scenarios ([low]–[high] reps):** [Narrate the differentiated investment model. Reference the Pareto data from the EDA directly: if the top 30% of HCPs account for [X]% of total Rx/activity, a Premium-tilt or Balanced segment scenario is well-supported by the data. Explain how differentiating reach and frequency by HCP potential segment — rather than applying uniform coverage — allows the same budget to generate higher commercial impact. Note when segment scenarios are most appropriate: when HCP heterogeneity is high and the prescriber base has a clear, identifiable high-value tail.]
-
 ---
 
 ## Step 6 — Deliver Best-Fit Recommendation
@@ -277,17 +265,16 @@ Apply this recommendation logic:
 | Post-launch growth, first-in-class | Frequency / High-touch | Deepen relationships with established prescribers; the bottleneck is clinical confidence, not awareness |
 | Post-launch growth, competitive (multiple approvals) | Reach / Aggressive or Moderate | Prescriber switching requires continuous presence; expanding the prescriber base is the growth lever |
 | Post-launch mature, budget optimization | Reach / Conservative or Frequency / Low-touch | Diminishing returns on incremental frequency; ROI optimization favors efficiency over investment |
-| HCP base with strong Pareto distribution (top 30% drive >60% of volume) | Segment / Balanced or Premium-tilt | Differentiated investment is data-justified; Premium-tilt defensible when the high-potential tail is very concentrated |
 
 **Output the recommendation in this structured format:**
 
 ---
 
-### Sizing Recommendation: [Scenario / Sub-scenario] — [X] Reps
+### Sizing Recommendation: [Scenario / Sub-scenario] — 15 Reps
 
 **Why this scenario:** [2–3 sentences. Connect commercial stage, competitive positioning, market type, and HCP data. Be specific: "With [Y] T1 HCPs and [Z] T2 HCPs across [N] states, and positioned as a [first-in-class / competitive entrant] at the [launch year / post-launch] stage, the [Scenario] scenario's [reach/frequency] posture is the most commercially appropriate..."]
 
-**Scenario range in context:** The 10 scenarios yield a rep count range of [min]–[max] reps. The recommended [X] reps sits at [position in range — e.g., "the 40th percentile"], calibrated for [concise commercial rationale — not too high to waste budget, not too low to risk coverage].
+**Scenario range in context:** The 7 scenarios yield a rep count range of [min]–[max] reps. The recommended [X] reps sits at [position in range — e.g., "the 40th percentile"], calibrated for [concise commercial rationale — not too high to waste budget, not too low to risk coverage].
 
 **HCP/rep ratio validation:** At [X] reps covering [Y] total HCPs (at the modeled reach), each rep manages approximately [Z] HCPs. This is [within / above / below] the benchmark range of [range] for [market type] deployments. [Commentary: what does this mean practically — is coverage adequate, over-extended, or over-resourced?]
 
