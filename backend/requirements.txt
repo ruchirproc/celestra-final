@@ -1,6 +1,8 @@
-flask
-flask-cors
+fastapi
+uvicorn[standard]
+python-multipart
 python-dotenv
 gunicorn
 openai
 openpyxl
+httpx

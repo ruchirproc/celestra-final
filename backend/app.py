@@ -4,35 +4,58 @@ import uuid
 import json
 import re
 import time
+import logging
 from pathlib import Path
 
-from flask import Flask, request, jsonify, Response, stream_with_context
-from flask_cors import CORS
+from fastapi import FastAPI, Request
+# `Request.form()` returns Starlette's UploadFile directly — fastapi.UploadFile is a
+# separate wrapper class only produced by FastAPI's own dependency-injected `File(...)`
+# params, so isinstance checks here must use Starlette's class, not fastapi's.
+from starlette.datastructures import UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from dotenv import load_dotenv
-from openai import OpenAI, AzureOpenAI
+from openai import OpenAI, AsyncOpenAI, AzureOpenAI, AsyncAzureOpenAI
 import openpyxl
 import httpx
 
 load_dotenv()
 
-app = Flask(__name__)
+logger = logging.getLogger("celestra")
+logging.basicConfig(level=logging.INFO)
+
+app = FastAPI()
 
 _ALLOWED_ORIGINS = [
-    re.compile(r"http://localhost(:\d+)?$"),
     "https://celestra-final.vercel.app",
-    "https://celestra-demo.vercel.app"
+    "https://celestra-demo.vercel.app",
 ]
 if _frontend_url := os.environ.get("FRONTEND_URL"):
     _ALLOWED_ORIGINS.append(_frontend_url.rstrip("/"))
 
-CORS(app, origins=_ALLOWED_ORIGINS, supports_credentials=False)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_origin_regex=r"http://localhost(:\d+)?$",
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Auto-detect endpoint type:
 #   *.openai.azure.com  → Azure OpenAI Service  → AzureOpenAI client (needs api_version)
 #   *.models.ai.azure.com → Azure AI Foundry serverless → standard OpenAI client (needs /v1 suffix)
+# Both a sync and async client are kept: the async client drives all streaming/chat
+# endpoints, the sync client backs the file-download endpoint (a plain sync def,
+# which FastAPI runs in a thread pool automatically).
 _endpoint = os.environ["AZURE_ENDPOINT"]
 if "openai.azure.com" in _endpoint:
     client = AzureOpenAI(
+        api_key=os.environ["AZURE_API_KEY"],
+        azure_endpoint=_endpoint,
+        api_version=os.environ.get("AZURE_API_VERSION", "2025-03-01-preview"),
+    )
+    async_client = AsyncAzureOpenAI(
         api_key=os.environ["AZURE_API_KEY"],
         azure_endpoint=_endpoint,
         api_version=os.environ.get("AZURE_API_VERSION", "2025-03-01-preview"),
@@ -41,6 +64,10 @@ else:
     client = OpenAI(
         api_key=os.environ["AZURE_API_KEY"],
         base_url=_endpoint,   # e.g. https://xxx.eastus.models.ai.azure.com/v1
+    )
+    async_client = AsyncOpenAI(
+        api_key=os.environ["AZURE_API_KEY"],
+        base_url=_endpoint,
     )
 
 MODEL = os.environ.get("AZURE_MODEL", "gpt-5.3-chat")
@@ -164,9 +191,9 @@ def _messages_for_openai(system_prompt: str, history: list) -> list:
     return [{"role": "system", "content": system_prompt}] + history
 
 
-def _call_gpt_sync(session_id: str) -> str:
+async def _call_gpt(session_id: str) -> str:
     sess = sessions[session_id]
-    response = client.chat.completions.create(
+    response = await async_client.chat.completions.create(
         model=MODEL,
         max_completion_tokens=8192,
         messages=_messages_for_openai(sess["system_prompt"], sess["messages"]),
@@ -279,16 +306,25 @@ def _format_context_for_prompt(ctx_json: str) -> str:
     return "\n".join(lines)
 
 
+async def _read_json_body(request: Request) -> dict:
+    """Mirrors Flask's `request.get_json(silent=True) or {}` — never raises on bad/missing JSON."""
+    try:
+        body = await request.json()
+        return body if isinstance(body, dict) else {}
+    except Exception:
+        return {}
+
+
 # ── Session start ─────────────────────────────────────────────────────────────
 
-@app.route("/api/session/start", methods=["POST"])
-def start_session():
-    data = request.get_json(silent=True) or {}
+@app.post("/api/session/start")
+async def start_session(request: Request):
+    data = await _read_json_body(request)
     agent = data.get("agent", "context")
     project_id = data.get("project_id")
 
     if agent not in AGENT_SKILL_MAP:
-        return jsonify({"error": f"Unknown agent: {agent}"}), 400
+        return JSONResponse({"error": f"Unknown agent: {agent}"}, status_code=400)
 
     session_id = uuid.uuid4().hex
 
@@ -305,14 +341,14 @@ def start_session():
         opening = "I am ready to begin the HCP targeting workflow. Please upload the HCP universe Excel file to get started."
         history = [{"role": "user", "content": opening}]
         try:
-            response = client.responses.create(
+            response = await async_client.responses.create(
                 model=ASSISTANT_MODEL,
                 tools=[{"type": "code_interpreter", "container": {"type": "auto"}}],
                 instructions=system_prompt,
                 input=history,
             )
         except Exception as exc:
-            return jsonify({"error": f"Failed to start targeting session: {exc}"}), 500
+            return JSONResponse({"error": f"Failed to start targeting session: {exc}"}, status_code=500)
 
         first_message = _extract_text_from_response(response)
         history.append({"role": "assistant", "content": first_message})
@@ -325,7 +361,7 @@ def start_session():
             "file_ids": [],      # all uploaded file IDs — passed to container each turn
             "project_id": project_id,
         }
-        return jsonify({"session_id": session_id, "first_message": first_message})
+        return {"session_id": session_id, "first_message": first_message}
 
     # ── Chat Completions path (context, sizing, alignment) ───────────────────
     agent_file, skill_folder = AGENT_SKILL_MAP[agent]
@@ -350,37 +386,41 @@ def start_session():
     }
     sessions[session_id]["messages"].append({"role": "user", "content": opening})
     try:
-        first_message = _call_gpt_sync(session_id)
+        first_message = await _call_gpt(session_id)
     except Exception as exc:
         sessions.pop(session_id, None)
-        return jsonify({"error": f"Failed to start session: {exc}"}), 500
-    return jsonify({"session_id": session_id, "first_message": first_message})
+        return JSONResponse({"error": f"Failed to start session: {exc}"}, status_code=500)
+    return {"session_id": session_id, "first_message": first_message}
 
 
 # ── Message (SSE streaming) ───────────────────────────────────────────────────
 
-@app.route("/api/session/message", methods=["POST"])
-def send_message():
-    if request.content_type and "multipart" in request.content_type:
-        session_id = request.form.get("session_id", "")
-        user_text = request.form.get("message", "")
+@app.post("/api/session/message")
+async def send_message(request: Request):
+    form = None
+    content_type = request.headers.get("content-type", "")
+    if "multipart" in content_type:
+        form = await request.form()
+        session_id = str(form.get("session_id") or "")
+        user_text = str(form.get("message") or "")
     else:
-        body = request.get_json(silent=True) or {}
+        body = await _read_json_body(request)
         session_id = body.get("session_id", "")
         user_text = body.get("message", "")
 
     if not session_id or session_id not in sessions:
-        return jsonify({"error": "Invalid or expired session"}), 400
+        return JSONResponse({"error": "Invalid or expired session"}, status_code=400)
 
     sess = sessions[session_id]
 
     # ── Responses API path (targeting) ───────────────────────────────────────
     if sess.get("type") == "responses":
         # Upload all files — accumulates across turns so the container sees everything
-        new_files = request.files.getlist("file")
+        new_files = [f for f in (form.getlist("file") if form is not None else []) if isinstance(f, UploadFile)]
         for f in new_files:
-            uploaded = client.files.create(
-                file=(f.filename, f.read(),
+            file_bytes = await f.read()
+            uploaded = await async_client.files.create(
+                file=(f.filename, file_bytes,
                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
                 purpose="assistants",
             )
@@ -402,19 +442,19 @@ def send_message():
         if sess["file_ids"]:
             container["file_ids"] = sess["file_ids"]
 
-        def generate_responses():
+        async def generate_responses():
             full_text = ""
             output_files: list = []
             try:
                 final_response = None
                 last_ping = time.time()
-                with client.responses.stream(
+                async with async_client.responses.stream(
                     model=ASSISTANT_MODEL,
                     tools=[{"type": "code_interpreter", "container": container}],
                     instructions=sess["system_prompt"],
                     input=sess["history"],
                 ) as stream:
-                    for event in stream:
+                    async for event in stream:
                         now = time.time()
                         if now - last_ping > 15:
                             yield ": keepalive\n\n"
@@ -473,37 +513,37 @@ def send_message():
             except Exception as exc:
                 yield f"data: {json.dumps({'error': str(exc)})}\n\n"
 
-        return Response(
-            stream_with_context(generate_responses()),
-            content_type="text/event-stream",
+        return StreamingResponse(
+            generate_responses(),
+            media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
     # ── Chat Completions path (context) ───────────────────────────────────────
     content = user_text or ""
-    if "file" in request.files:
-        f = request.files["file"]
+    upload = form.get("file") if form is not None else None
+    if isinstance(upload, UploadFile):
         try:
-            excel_text = parse_excel_to_text(f.read())
+            excel_text = parse_excel_to_text(await upload.read())
         except Exception as exc:
-            return jsonify({"error": f"Could not parse uploaded file: {exc}"}), 400
+            return JSONResponse({"error": f"Could not parse uploaded file: {exc}"}, status_code=400)
         content = (content + "\n\n" if content else "") + (
-            f"UPLOADED FILE: {f.filename}\n\n{excel_text}"
+            f"UPLOADED FILE: {upload.filename}\n\n{excel_text}"
         )
 
     sess["messages"].append({"role": "user", "content": content})
 
-    def generate():
+    async def generate():
         full_text = ""
         try:
             last_ping = time.time()
-            stream = client.chat.completions.create(
+            stream = await async_client.chat.completions.create(
                 model=MODEL,
                 max_completion_tokens=8192,
                 messages=_messages_for_openai(sess["system_prompt"], sess["messages"]),
                 stream=True,
             )
-            for chunk in stream:
+            async for chunk in stream:
                 now = time.time()
                 if now - last_ping > 15:
                     yield ": keepalive\n\n"
@@ -529,20 +569,20 @@ def send_message():
         except Exception as exc:
             yield f"data: {json.dumps({'error': str(exc)})}\n\n"
 
-    return Response(
-        stream_with_context(generate()),
-        content_type="text/event-stream",
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
 # ── Context form analysis ─────────────────────────────────────────────────────
 
-@app.route("/api/context/analyze", methods=["POST"])
-def analyze_context_form():
-    data = request.get_json(silent=True) or {}
-    form = data.get("form_data", {})
-    prompt = _format_form_as_prompt(form)
+@app.post("/api/context/analyze")
+async def analyze_context_form(request: Request):
+    data = await _read_json_body(request)
+    form_data = data.get("form_data", {})
+    prompt = _format_form_as_prompt(form_data)
     system_prompt = build_system_prompt("agent-project-context.md", None)
 
     session_id = uuid.uuid4().hex
@@ -553,16 +593,16 @@ def analyze_context_form():
         "project_id": None,
     }
 
-    def generate():
+    async def generate():
         full_text = ""
         try:
-            stream = client.chat.completions.create(
+            stream = await async_client.chat.completions.create(
                 model=MODEL,
                 max_completion_tokens=8192,
                 messages=_messages_for_openai(system_prompt, sessions[session_id]["messages"]),
                 stream=True,
             )
-            for chunk in stream:
+            async for chunk in stream:
                 if not chunk.choices:
                     continue
                 delta = chunk.choices[0].delta.content or ""
@@ -578,9 +618,9 @@ def analyze_context_form():
         except Exception as exc:
             yield f"data: {json.dumps({'error': str(exc)})}\n\n"
 
-    return Response(
-        stream_with_context(generate()),
-        content_type="text/event-stream",
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
@@ -642,10 +682,9 @@ def _format_form_as_prompt(form: dict) -> str:
 
 # ── Utility endpoints ─────────────────────────────────────────────────────────
 
-@app.route("/api/file/<file_id>", methods=["GET"])
-def download_file(file_id: str):
-    container_id = request.args.get("container_id")
-    filename = request.args.get("filename") or f"{file_id}.bin"
+@app.get("/api/file/{file_id}")
+def download_file(file_id: str, container_id: str | None = None, filename: str | None = None):
+    filename = filename or f"{file_id}.bin"
 
     ct_map = {
         "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -680,35 +719,34 @@ def download_file(file_id: str):
             data = client.files.content(file_id).read()
 
         return Response(
-            data,
-            content_type=content_type_for(filename),
+            content=data,
+            media_type=content_type_for(filename),
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return JSONResponse({"error": str(exc)}, status_code=500)
 
 
-@app.route("/api/project/<project_id>", methods=["GET"])
+@app.get("/api/project/{project_id}")
 def get_project(project_id: str):
     if project_id not in projects:
-        return jsonify({"error": "Not found"}), 404
-    return jsonify(projects[project_id])
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    return projects[project_id]
 
 
-@app.route("/api/health", methods=["GET"])
+@app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "model": MODEL})
+    return {"status": "ok", "model": MODEL}
 
 
-@app.errorhandler(Exception)
-def handle_unhandled_exception(exc):
-    # Registering a custom handler causes Flask to run after_request hooks
-    # (including Flask-CORS) on the error response, so CORS headers are present.
-    app.logger.exception("Unhandled exception")
-    response = jsonify({"error": str(exc)})
-    response.status_code = 500
-    return response
+@app.exception_handler(Exception)
+async def handle_unhandled_exception(request: Request, exc: Exception):
+    # CORSMiddleware wraps the whole ASGI stack, so it still applies CORS headers
+    # to responses returned from this handler.
+    logger.exception("Unhandled exception")
+    return JSONResponse(status_code=500, content={"error": str(exc)})
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)

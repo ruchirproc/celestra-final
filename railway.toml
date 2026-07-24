@@ -2,4 +2,4 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "gunicorn --chdir backend app:app --timeout 300 --keep-alive 75 --workers 1"
+startCommand = "gunicorn --chdir backend app:app --worker-class uvicorn.workers.UvicornWorker --timeout 300 --keep-alive 75 --workers 1"
