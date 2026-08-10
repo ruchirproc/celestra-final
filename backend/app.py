@@ -27,8 +27,9 @@ logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
 _ALLOWED_ORIGINS = [
-    "https://celestra-final.vercel.app",
-    "https://celestra-demo.vercel.app",
+    # "https://celestra-final.vercel.app",
+    # "https://celestra-demo.vercel.app",
+    "*"
 ]
 if _frontend_url := os.environ.get("FRONTEND_URL"):
     _ALLOWED_ORIGINS.append(_frontend_url.rstrip("/"))
@@ -36,7 +37,6 @@ if _frontend_url := os.environ.get("FRONTEND_URL"):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_ALLOWED_ORIGINS,
-    allow_origin_regex=r"http://localhost(:\d+)?$",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
