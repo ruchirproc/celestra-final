@@ -1,4 +1,4 @@
-export const API_BASE = "https://celestra-final-production.up.railway.app";
+export const API_BASE = "https://celestra-final-production-4075.up.railway.app";
 
 export interface SessionStartResult {
   session_id: string;
