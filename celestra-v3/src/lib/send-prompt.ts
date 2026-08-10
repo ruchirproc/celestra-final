@@ -1,7 +1,7 @@
 import { toast } from 'sonner';
 import type { SheetPreview } from './workbook-store';
 
-const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'https://celestra-final-production.up.railway.app').replace(/\/+$/, '');
+const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'https://celestra-final-production-4075.up.railway.app').replace(/\/+$/, '');
 
 export type SendPromptResult =
   | { ok: true; blob: Blob; filename: string }
