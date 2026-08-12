@@ -27,8 +27,6 @@ logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
 _ALLOWED_ORIGINS = [
-    # "https://celestra-final.vercel.app",
-    # "https://celestra-demo.vercel.app",
     "*"
 ]
 if _frontend_url := os.environ.get("FRONTEND_URL"):
